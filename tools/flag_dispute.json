@@ -1,0 +1,26 @@
+{
+  "type": "function",
+  "function": {
+    "name": "flag_dispute",
+    "description": "Use this tool when the consumer disputes the debt — they say they don't owe it, already paid it, or the amount is wrong. Under FDCPA §1692g, you must stop collection activity and send written verification. After calling this tool, inform the consumer that a validation letter will be sent and end collection discussion.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "account_number": {
+          "type": "string",
+          "description": "The consumer's account number (e.g., 'CH7723849')"
+        }
+      },
+      "required": ["account_number"]
+    }
+  },
+  "messages": [
+    {
+      "type": "request-start",
+      "content": "I'm noting that dispute on your account now."
+    }
+  ],
+  "server": {
+    "url": "https://your-backend.railway.app/vapi/webhook"
+  }
+}
