@@ -1,0 +1,34 @@
+{
+  "type": "function",
+  "function": {
+    "name": "set_promise_to_pay",
+    "description": "Use this tool when the consumer cannot pay right now but verbally commits to paying a specific amount by a specific date. Do NOT call this if the consumer is vague ('I'll try to pay soon') or has not committed to a date and amount.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "account_number": {
+          "type": "string",
+          "description": "The consumer's account number (e.g., 'CH7723849')"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The dollar amount the consumer commits to paying (e.g., 94.50)"
+        },
+        "date": {
+          "type": "string",
+          "description": "The date the consumer promises to pay by, in YYYY-MM-DD format (e.g., '2024-10-01')"
+        }
+      },
+      "required": ["account_number", "amount", "date"]
+    }
+  },
+  "messages": [
+    {
+      "type": "request-start",
+      "content": "Let me note that arrangement on your account."
+    }
+  ],
+  "server": {
+    "url": "https://your-backend.railway.app/vapi/webhook"
+  }
+}
