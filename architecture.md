@@ -84,24 +84,29 @@ POST https://api.vapi.ai/call/phone
   },
   "assistantOverrides": {
     "variableValues": {
+      "account_number": "CH7723849",
       "consumer_first_name": "James",
       "consumer_last_name": "Carter",
-      "creditor_name": "Chase",
-      "product_type": "Sapphire Credit Card",
-      "last_4_digits": "4892",
-      "past_due_amount": "1247.83",
-      "minimum_payment": "35.00",
-      "total_balance": "6892.41",
-      "days_past_due": "47",
-      "missed_payments": 2,
+      "consumer_dob": "1985-03-15",
       "consumer_state": "TX",
+      "product_type": "Sapphire Credit Card",
+      "last_4_digits": "3849",
+      "total_balance": "3847.22",
+      "past_due_amount": "189.00",
+      "minimum_payment": "94.50",
+      "days_past_due": "60",
+      "missed_payments": 2,
       "cease_and_desist": false,
+      "do_not_call": false,
       "has_attorney": false,
       "active_dispute": false,
-      "active_promise_to_pay": null,
-      "do_not_call": false,
-      "last_contact_date": "2024-09-10",
-      "call_attempts_last_7_days": 2
+      "promise_to_pay_exists": false,
+      "promise_to_pay_date": null,
+      "promise_to_pay_amount": null,
+      "last_contact_date": "2024-09-01",
+      "call_attempts_last_7_days": 0,
+      "callback_number": "+18005551234",
+      "department": "Credit Card Services"
     }
   }
 }

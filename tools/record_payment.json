@@ -1,0 +1,35 @@
+{
+  "type": "function",
+  "function": {
+    "name": "record_payment",
+    "description": "Use this tool when the consumer explicitly agrees to make a payment right now during the call. Do NOT call this if the consumer is only discussing payment options, asking about their balance, or has not yet committed to paying.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "account_number": {
+          "type": "string",
+          "description": "The consumer's account number (e.g., 'CH7723849')"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The dollar amount the consumer agreed to pay (e.g., 189.00)"
+        },
+        "method": {
+          "type": "string",
+          "enum": ["phone", "online", "check"],
+          "description": "How the payment is being made. Default to 'phone' for payments taken during this call."
+        }
+      },
+      "required": ["account_number", "amount"]
+    }
+  },
+  "messages": [
+    {
+      "type": "request-start",
+      "content": "Let me note that payment on your account."
+    }
+  ],
+  "server": {
+    "url": "https://your-backend.railway.app/vapi/webhook"
+  }
+}
