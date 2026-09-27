@@ -93,6 +93,7 @@ POST https://api.vapi.ai/call/phone
       "minimum_payment": "35.00",
       "total_balance": "6892.41",
       "days_past_due": "47",
+      "missed_payments": 2,
       "consumer_state": "TX",
       "cease_and_desist": false,
       "has_attorney": false,

@@ -100,6 +100,7 @@ Total Balance: {{total_balance}}
 Past-Due Amount: {{past_due_amount}}
 Minimum Payment: {{minimum_payment}}
 Days Past Due: {{days_past_due}}
+Missed Payments: {{missed_payments}}
 
 ## Compliance Flags
 Cease and Desist: {{cease_and_desist}}
