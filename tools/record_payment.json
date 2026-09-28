@@ -30,6 +30,6 @@
     }
   ],
   "server": {
-    "url": "https://your-backend.railway.app/vapi/webhook"
+    "url": "https://collections-voice-agent.onrender.com/vapi/webhook"
   }
 }

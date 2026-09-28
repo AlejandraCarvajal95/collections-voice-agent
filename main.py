@@ -1,4 +1,5 @@
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -82,6 +83,14 @@ async def get_accounts():
 @app.get("/call/logs")
 async def call_logs():
     return get_call_logs()
+
+
+@app.get("/config")
+async def get_config():
+    return {
+        "vapi_public_key": os.environ.get("VAPI_PUBLIC_KEY", ""),
+        "vapi_assistant_id": os.environ.get("VAPI_ASSISTANT_ID", ""),
+    }
 
 
 @app.post("/data/reset")

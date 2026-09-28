@@ -72,6 +72,7 @@
             transition: box-shadow 0.2s;
         }
         .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .card.on-call { border-color: var(--success); box-shadow: 0 0 0 2px var(--badge-green); }
 
         .card-header {
             padding: 16px 20px;
@@ -166,6 +167,12 @@
             cursor: not-allowed;
         }
 
+        .btn-end {
+            background: var(--danger);
+            color: white;
+        }
+        .btn-end:hover { background: #b91c1c; }
+
         .compliance-result {
             margin-top: 10px;
             padding: 10px 14px;
@@ -196,6 +203,8 @@
             text-align: center;
         }
         .call-status.visible { display: block; }
+        .call-status.active { background: var(--badge-green); color: #166534; }
+        .call-status.ended { background: var(--bg); color: var(--text-light); }
 
         .logs-panel {
             max-width: 1440px;
@@ -258,27 +267,95 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@vapi-ai/web@2/dist/vapi.min.js"></script>
 <script>
 const API_BASE = window.location.origin;
+
+let vapiInstance = null;
+let activeCallAccount = null;
+let accountsCache = [];
+
+async function loadConfig() {
+    try {
+        const res = await fetch(`${API_BASE}/config`);
+        const config = await res.json();
+
+        if (!config.vapi_public_key) {
+            console.warn('Vapi public key not configured');
+            return;
+        }
+
+        vapiInstance = new window.Vapi(config.vapi_public_key);
+        vapiInstance._assistantId = config.vapi_assistant_id;
+
+        vapiInstance.on('call-start', () => {
+            updateCallStatus(activeCallAccount, 'Call connected — speaking with agent', 'active');
+            const card = document.getElementById(`card-${activeCallAccount}`);
+            if (card) card.classList.add('on-call');
+        });
+
+        vapiInstance.on('call-end', () => {
+            updateCallStatus(activeCallAccount, 'Call ended — refreshing data...', 'ended');
+            const card = document.getElementById(`card-${activeCallAccount}`);
+            if (card) card.classList.remove('on-call');
+
+            const btn = document.getElementById(`call-btn-${activeCallAccount}`);
+            if (btn) {
+                btn.textContent = 'Start Call';
+                btn.disabled = false;
+                btn.className = 'btn-call';
+                btn.onclick = () => startCall(activeCallAccount);
+            }
+
+            setTimeout(() => {
+                refreshAccounts();
+                refreshLogs();
+            }, 2000);
+
+            activeCallAccount = null;
+        });
+
+        vapiInstance.on('error', (e) => {
+            console.error('Vapi error:', e);
+            if (activeCallAccount) {
+                updateCallStatus(activeCallAccount, 'Call error — please try again', 'ended');
+                const btn = document.getElementById(`call-btn-${activeCallAccount}`);
+                if (btn) {
+                    btn.textContent = 'Start Call';
+                    btn.disabled = false;
+                    btn.className = 'btn-call';
+                    btn.onclick = () => startCall(activeCallAccount);
+                }
+                activeCallAccount = null;
+            }
+        });
+
+    } catch (e) {
+        console.warn('Could not load config:', e);
+    }
+}
+
+function updateCallStatus(accountNumber, text, state) {
+    const el = document.getElementById(`call-status-${accountNumber}`);
+    if (!el) return;
+    el.className = `call-status visible ${state || ''}`;
+    el.textContent = text;
+}
 
 function formatMoney(val) {
     return '$' + Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function renderAccount(account) {
-    const flags = [];
-    if (account.cease_and_desist) flags.push('Cease & Desist');
-    if (account.do_not_call) flags.push('Do Not Call');
-    if (account.has_attorney) flags.push('Attorney');
-    if (account.active_dispute) flags.push('Dispute');
-
-    const hasActiveFlags = flags.length > 0;
+    const hasActiveFlags = account.cease_and_desist || account.do_not_call || account.has_attorney || account.active_dispute;
     const ptpInfo = account.promise_to_pay_exists
         ? `<div class="field"><label>Promise to Pay</label><span>${account.promise_to_pay_date} — ${formatMoney(account.promise_to_pay_amount)}</span></div>`
         : '';
 
+    const isOnCall = activeCallAccount === account.account_number;
+
     return `
-        <div class="card" id="card-${account.account_number}">
+        <div class="card ${isOnCall ? 'on-call' : ''}" id="card-${account.account_number}">
             <div class="card-header">
                 <div>
                     <h2>${account.consumer_first_name} ${account.consumer_last_name}</h2>
@@ -331,9 +408,10 @@ function renderAccount(account) {
                 <button class="btn-check" onclick="checkCompliance('${account.account_number}')">
                     Check Compliance
                 </button>
-                <button class="btn-call" id="call-btn-${account.account_number}" onclick="startCall('${account.account_number}')">
-                    Start Call
-                </button>
+                ${isOnCall
+                    ? `<button class="btn-end" id="call-btn-${account.account_number}" onclick="endCall()">End Call</button>`
+                    : `<button class="btn-call" id="call-btn-${account.account_number}" onclick="startCall('${account.account_number}')">Start Call</button>`
+                }
             </div>
         </div>
     `;
@@ -342,9 +420,9 @@ function renderAccount(account) {
 async function refreshAccounts() {
     try {
         const res = await fetch(`${API_BASE}/accounts`);
-        const accounts = await res.json();
+        accountsCache = await res.json();
         const grid = document.getElementById('accounts-grid');
-        grid.innerHTML = accounts.map(renderAccount).join('');
+        grid.innerHTML = accountsCache.map(renderAccount).join('');
     } catch (e) {
         console.error('Failed to load accounts:', e);
     }
@@ -389,19 +467,19 @@ async function checkCompliance(accountNumber) {
         });
         const data = await res.json();
 
-        if (data.allowed) {
-            el.className = 'compliance-result allowed';
-            el.textContent = `Allowed — Call attempt #${data.call_attempt_number}`;
-        } else {
-            el.className = 'compliance-result blocked';
-            el.textContent = `Blocked — ${data.reason}`;
-        }
+        const resultClass = data.allowed ? 'allowed' : 'blocked';
+        const resultText = data.allowed
+            ? `Allowed — Call attempt #${data.call_attempt_number}`
+            : `Blocked — ${data.reason}`;
+
+        el.className = `compliance-result ${resultClass}`;
+        el.textContent = resultText;
 
         refreshAccounts().then(() => {
             const newEl = document.getElementById(`compliance-${accountNumber}`);
             if (newEl) {
-                newEl.className = el.className;
-                newEl.textContent = el.textContent;
+                newEl.className = `compliance-result ${resultClass}`;
+                newEl.textContent = resultText;
                 newEl.style.display = 'block';
             }
         });
@@ -412,13 +490,75 @@ async function checkCompliance(accountNumber) {
 }
 
 async function startCall(accountNumber) {
-    const statusEl = document.getElementById(`call-status-${accountNumber}`);
-    statusEl.className = 'call-status visible';
-    statusEl.innerHTML = '&#9742; Vapi Web SDK call will be connected here in Phase 5.<br><small>The compliance check, account variable injection, and call flow are ready.</small>';
+    if (!vapiInstance || !vapiInstance._assistantId) {
+        updateCallStatus(accountNumber, 'Vapi not configured — set VAPI_PUBLIC_KEY and VAPI_ASSISTANT_ID in environment variables', 'ended');
+        return;
+    }
+
+    if (activeCallAccount) {
+        alert('A call is already in progress. End the current call first.');
+        return;
+    }
+
+    const account = accountsCache.find(a => a.account_number === accountNumber);
+    if (!account) return;
 
     const btn = document.getElementById(`call-btn-${accountNumber}`);
     btn.disabled = true;
-    btn.textContent = 'Pending SDK';
+    btn.textContent = 'Connecting...';
+
+    updateCallStatus(accountNumber, 'Running compliance check...', '');
+    activeCallAccount = accountNumber;
+
+    try {
+        vapiInstance.start(vapiInstance._assistantId, {
+            variableValues: {
+                consumer_first_name: account.consumer_first_name,
+                consumer_last_name: account.consumer_last_name,
+                consumer_state: account.consumer_state,
+                consumer_dob: account.consumer_dob,
+                account_number: account.account_number,
+                product_type: account.product_type,
+                last_4_digits: account.last_4_digits,
+                total_balance: String(account.total_balance),
+                past_due_amount: String(account.past_due_amount),
+                minimum_payment: String(account.minimum_payment),
+                days_past_due: String(account.days_past_due),
+                missed_payments: String(account.missed_payments),
+                cease_and_desist: String(account.cease_and_desist),
+                do_not_call: String(account.do_not_call),
+                has_attorney: String(account.has_attorney),
+                active_dispute: String(account.active_dispute),
+                promise_to_pay_exists: String(account.promise_to_pay_exists),
+                promise_to_pay_date: account.promise_to_pay_date || '',
+                promise_to_pay_amount: account.promise_to_pay_amount ? String(account.promise_to_pay_amount) : '',
+                last_contact_date: account.last_contact_date || '',
+                call_attempts_last_7_days: String(account.call_attempts_last_7_days),
+                callback_number: account.callback_number,
+                department: account.department,
+            },
+        });
+
+        updateCallStatus(accountNumber, 'Connecting to agent...', '');
+        btn.textContent = 'End Call';
+        btn.disabled = false;
+        btn.className = 'btn-end';
+        btn.onclick = endCall;
+    } catch (e) {
+        console.error('Failed to start call:', e);
+        updateCallStatus(accountNumber, `Failed to start call: ${e.message}`, 'ended');
+        btn.textContent = 'Start Call';
+        btn.disabled = false;
+        btn.className = 'btn-call';
+        btn.onclick = () => startCall(accountNumber);
+        activeCallAccount = null;
+    }
+}
+
+function endCall() {
+    if (vapiInstance) {
+        vapiInstance.stop();
+    }
 }
 
 async function resetData() {
@@ -429,14 +569,13 @@ async function resetData() {
         if (res.ok) {
             refreshAccounts();
             refreshLogs();
-        } else {
-            alert('Reset endpoint not available yet.');
         }
     } catch (e) {
-        alert('Reset endpoint not available yet.');
+        alert('Reset failed: ' + e.message);
     }
 }
 
+loadConfig();
 refreshAccounts();
 refreshLogs();
 </script>
