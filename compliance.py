@@ -107,13 +107,20 @@ def check_compliance(account_number: str) -> dict:
                 "reason": f"Outside calling hours in {state} (currently {local_time.strftime('%I:%M %p')} local). FDCPA §1692c(a)(1) allows calls only between 8:00 AM and 9:00 PM.",
             }
 
-    # All checks passed — increment call counter
-    account["call_attempts_last_7_days"] = account.get("call_attempts_last_7_days", 0) + 1
-    save_accounts(accounts)
-
+    # All checks passed — do NOT increment counter here (read-only check)
     return {
         "allowed": True,
         "account_number": account_number,
         "consumer_name": f"{account['consumer_first_name']} {account['consumer_last_name']}",
-        "call_attempt_number": account["call_attempts_last_7_days"],
+        "call_attempt_number": account.get("call_attempts_last_7_days", 0) + 1,
     }
+
+
+def increment_call_attempt(account_number: str) -> dict:
+    accounts = load_accounts()
+    account = find_account(accounts, account_number)
+    if not account:
+        return {"ok": False, "reason": "Account not found"}
+    account["call_attempts_last_7_days"] = account.get("call_attempts_last_7_days", 0) + 1
+    save_accounts(accounts)
+    return {"ok": True, "call_attempt_number": account["call_attempts_last_7_days"]}

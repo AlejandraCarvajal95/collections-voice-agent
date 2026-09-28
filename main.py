@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from call_handler import handle_end_of_call, get_call_logs
-from compliance import check_compliance
+from compliance import check_compliance, increment_call_attempt
 from data import load_accounts, snapshot_original, reset_data
 from tools import TOOL_HANDLERS
 
@@ -73,6 +73,11 @@ async def vapi_webhook(request: Request):
 @app.post("/call/check")
 async def call_check(body: CallCheckRequest):
     return check_compliance(body.account_number)
+
+
+@app.post("/call/start")
+async def call_start(body: CallCheckRequest):
+    return increment_call_attempt(body.account_number)
 
 
 @app.get("/accounts")
