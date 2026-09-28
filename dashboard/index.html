@@ -305,8 +305,15 @@ function cleanupCall(accountNumber) {
 async function loadVapiSdk() {
     try {
         var mod = await import('https://cdn.jsdelivr.net/npm/@vapi-ai/web@2/+esm');
-        VapiClass = mod.default || mod;
-        console.log('Vapi SDK loaded');
+        var candidate = mod.default || mod;
+        if (typeof candidate === 'function') {
+            VapiClass = candidate;
+        } else if (candidate && typeof candidate.default === 'function') {
+            VapiClass = candidate.default;
+        } else if (candidate && typeof candidate.Vapi === 'function') {
+            VapiClass = candidate.Vapi;
+        }
+        console.log('Vapi SDK loaded:', typeof VapiClass);
     } catch (e) {
         console.warn('Vapi SDK failed to load — calls disabled:', e);
     }
