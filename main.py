@@ -2,11 +2,16 @@ import json
 from datetime import datetime
 
 from fastapi import FastAPI, Request
+from pydantic import BaseModel
 
 from call_handler import handle_end_of_call, get_call_logs
 from compliance import check_compliance
 from data import load_accounts
 from tools import TOOL_HANDLERS
+
+
+class CallCheckRequest(BaseModel):
+    account_number: str
 
 app = FastAPI(title="Collections Voice Agent Backend")
 
@@ -47,10 +52,8 @@ async def vapi_webhook(request: Request):
 
 
 @app.post("/call/check")
-async def call_check(request: Request):
-    body = await request.json()
-    account_number = body.get("account_number", "")
-    return check_compliance(account_number)
+async def call_check(body: CallCheckRequest):
+    return check_compliance(body.account_number)
 
 
 @app.get("/accounts")

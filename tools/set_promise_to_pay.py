@@ -14,6 +14,13 @@ def handle_set_promise_to_pay(arguments: dict) -> dict:
     if not account:
         return {"status": "error", "message": "Account not found"}
 
+    try:
+        promised = date.fromisoformat(pay_date)
+        if promised <= date.today():
+            return {"status": "error", "message": "The payment date must be a future date."}
+    except ValueError:
+        return {"status": "error", "message": "Invalid date format. Use YYYY-MM-DD."}
+
     today = date.today().strftime("%Y%m%d")
     confirmation = f"PTP-{today}-{account_number[-4:]}"
 
