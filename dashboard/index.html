@@ -296,7 +296,7 @@ const API_BASE = window.location.origin;
 
 let VapiClass = null;
 let vapiInstance = null;
-let vapiConfig = { assistantId: '', publicKey: '' };
+let vapiConfig = { assistantId: '', publicKey: '', transferNumber: '' };
 let activeCallAccount = null;
 let accountsCache = [];
 let callCheckInterval = null;
@@ -357,6 +357,7 @@ async function loadConfig() {
 
         vapiConfig.publicKey = config.vapi_public_key;
         vapiConfig.assistantId = config.vapi_assistant_id;
+        vapiConfig.transferNumber = config.transfer_number || '';
         console.log('Vapi config loaded');
     } catch (e) {
         console.warn('Could not load config:', e);
@@ -603,7 +604,7 @@ async function startCall(accountNumber) {
                 promise_to_pay_amount: account.promise_to_pay_amount ? String(account.promise_to_pay_amount) : '',
                 last_contact_date: account.last_contact_date || '',
                 call_attempts_last_7_days: String(account.call_attempts_last_7_days),
-                callback_number: account.callback_number,
+                callback_number: vapiConfig.transferNumber || account.callback_number,
                 department: account.department,
             },
         });

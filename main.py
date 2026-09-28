@@ -98,6 +98,7 @@ async def get_config(x_dashboard_token: str = Header(default="")):
     return {
         "vapi_public_key": os.environ.get("VAPI_PUBLIC_KEY", ""),
         "vapi_assistant_id": os.environ.get("VAPI_ASSISTANT_ID", ""),
+        "transfer_number": os.environ.get("TRANSFER_NUMBER", ""),
     }
 
 
