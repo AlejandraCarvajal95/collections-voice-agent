@@ -485,7 +485,7 @@ async function startCall(accountNumber) {
         });
 
         vapi.on('call-end', () => {
-            updateCallStatus(accountNumber, 'Call ended — refreshing data...', 'ended');
+            updateCallStatus(accountNumber, 'Call ended — waiting for report...', 'ended');
             const card = document.getElementById(`card-${accountNumber}`);
             if (card) card.classList.remove('on-call');
             btn.textContent = 'Start Call';
@@ -493,7 +493,14 @@ async function startCall(accountNumber) {
             btn.className = 'btn-call';
             btn.onclick = () => startCall(accountNumber);
             activeCallAccount = null;
+            vapiInstance = null;
             setTimeout(() => { refreshAccounts(); refreshLogs(); }, 2000);
+            setTimeout(() => { refreshAccounts(); refreshLogs(); }, 6000);
+            setTimeout(() => {
+                refreshAccounts();
+                refreshLogs();
+                updateCallStatus(accountNumber, 'Call ended — data updated', 'ended');
+            }, 12000);
         });
 
         vapi.on('error', (e) => {

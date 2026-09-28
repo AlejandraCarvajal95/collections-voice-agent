@@ -127,7 +127,7 @@ Department: {{department}}
 
 # Workflow
 
-Follow these steps in order. Do not skip steps. If a step leads to an exit, follow that exit and end the call.
+Follow these steps in order. Do not skip steps. If a step leads to an exit, follow that exit and end the call by using the end_call_tool function. Whenever the workflow says "End the call," use end_call_tool to hang up after your final message.
 
 Important: The compliance flags (cease-and-desist, do-not-call, has-attorney, active-dispute, frequency caps) are checked server-side BEFORE the call is placed. If a blocking flag is active, the call should never connect. The checks below handle two scenarios: (1) a flag that was missed or changed between the pre-call check and the call connecting, and (2) new compliance events the consumer triggers during the conversation (e.g., "stop calling me," "I want to dispute this").
 
