@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collections Voice Agent — Demo Dashboard</title>
+    <style>
+        :root {
+            --bg: #f5f6fa;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --border: #e2e8f0;
+            --badge-green: #dcfce7;
+            --badge-red: #fee2e2;
+            --badge-yellow: #fef9c3;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 24px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        header h1 { font-size: 1.5rem; font-weight: 700; }
+        header p { color: var(--text-light); font-size: 0.875rem; margin-top: 4px; }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .controls button {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--card-bg);
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: var(--text);
+            transition: all 0.15s;
+        }
+        .controls button:hover { border-color: var(--primary); color: var(--primary); }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 20px;
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+        }
+        .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+
+        .card-header {
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+        .card-header h2 { font-size: 1rem; font-weight: 600; }
+        .card-header .account-num { font-size: 0.75rem; color: var(--text-light); }
+
+        .badge {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-ok { background: var(--badge-green); color: var(--success); }
+        .badge-blocked { background: var(--badge-red); color: var(--danger); }
+        .badge-warning { background: var(--badge-yellow); color: var(--warning); }
+
+        .card-body { padding: 16px 20px; }
+
+        .field-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 16px;
+        }
+        .field label {
+            display: block;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-light);
+            margin-bottom: 2px;
+        }
+        .field span {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .flags {
+            margin-top: 12px;
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .flag {
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: var(--badge-red);
+            color: var(--danger);
+        }
+        .flag.inactive {
+            background: var(--badge-green);
+            color: var(--success);
+        }
+
+        .card-footer {
+            padding: 12px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+        }
+        .card-footer button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-check {
+            background: var(--card-bg);
+            border: 1px solid var(--primary) !important;
+            color: var(--primary);
+        }
+        .btn-check:hover { background: #eff6ff; }
+
+        .btn-call {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-call:hover { background: var(--primary-hover); }
+        .btn-call:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .compliance-result {
+            margin-top: 10px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            display: none;
+        }
+        .compliance-result.allowed {
+            background: var(--badge-green);
+            color: #166534;
+            display: block;
+        }
+        .compliance-result.blocked {
+            background: var(--badge-red);
+            color: #991b1b;
+            display: block;
+        }
+
+        .call-status {
+            margin-top: 8px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            background: #eff6ff;
+            color: var(--primary);
+            display: none;
+            text-align: center;
+        }
+        .call-status.visible { display: block; }
+
+        .logs-panel {
+            max-width: 1440px;
+            margin: 32px auto 0;
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        .logs-panel h3 {
+            padding: 16px 20px;
+            font-size: 0.95rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .logs-body {
+            padding: 16px 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.8rem;
+        }
+        .log-entry:last-child { border-bottom: none; }
+        .log-entry .log-time { color: var(--text-light); }
+        .log-entry .log-account { font-weight: 600; }
+        .logs-empty {
+            color: var(--text-light);
+            font-size: 0.8rem;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 12px; }
+            .grid { grid-template-columns: 1fr; }
+            .field-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Collections Voice Agent</h1>
+    <p>Pre-Charge-Off Demo Dashboard</p>
+</header>
+
+<div class="controls">
+    <button onclick="refreshAccounts()">Refresh Accounts</button>
+    <button onclick="refreshLogs()">Refresh Call Logs</button>
+    <button onclick="resetData()">Reset Demo Data</button>
+</div>
+
+<div class="grid" id="accounts-grid"></div>
+
+<div class="logs-panel">
+    <h3>Call Logs</h3>
+    <div class="logs-body" id="logs-body">
+        <p class="logs-empty">No call logs yet.</p>
+    </div>
+</div>
+
+<script>
+const API_BASE = window.location.origin;
+
+function formatMoney(val) {
+    return '$' + Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function renderAccount(account) {
+    const flags = [];
+    if (account.cease_and_desist) flags.push('Cease & Desist');
+    if (account.do_not_call) flags.push('Do Not Call');
+    if (account.has_attorney) flags.push('Attorney');
+    if (account.active_dispute) flags.push('Dispute');
+
+    const hasActiveFlags = flags.length > 0;
+    const ptpInfo = account.promise_to_pay_exists
+        ? `<div class="field"><label>Promise to Pay</label><span>${account.promise_to_pay_date} — ${formatMoney(account.promise_to_pay_amount)}</span></div>`
+        : '';
+
+    return `
+        <div class="card" id="card-${account.account_number}">
+            <div class="card-header">
+                <div>
+                    <h2>${account.consumer_first_name} ${account.consumer_last_name}</h2>
+                    <span class="account-num">${account.account_number} &middot; ${account.product_type}</span>
+                </div>
+                ${hasActiveFlags
+                    ? '<span class="badge badge-blocked">Blocked</span>'
+                    : `<span class="badge badge-ok">${account.days_past_due} DPD</span>`}
+            </div>
+            <div class="card-body">
+                <div class="field-grid">
+                    <div class="field">
+                        <label>Past Due</label>
+                        <span style="color:var(--danger)">${formatMoney(account.past_due_amount)}</span>
+                    </div>
+                    <div class="field">
+                        <label>Min Payment</label>
+                        <span>${formatMoney(account.minimum_payment)}</span>
+                    </div>
+                    <div class="field">
+                        <label>Total Balance</label>
+                        <span>${formatMoney(account.total_balance)}</span>
+                    </div>
+                    <div class="field">
+                        <label>State</label>
+                        <span>${account.consumer_state}</span>
+                    </div>
+                    <div class="field">
+                        <label>Call Attempts (7d)</label>
+                        <span>${account.call_attempts_last_7_days} / 7</span>
+                    </div>
+                    <div class="field">
+                        <label>Last Contact</label>
+                        <span>${account.last_contact_date || 'Never'}</span>
+                    </div>
+                    ${ptpInfo}
+                </div>
+                <div class="flags">
+                    ${['cease_and_desist', 'do_not_call', 'has_attorney', 'active_dispute'].map(f => {
+                        const label = f.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                        return account[f]
+                            ? `<span class="flag">${label}</span>`
+                            : `<span class="flag inactive">${label}: No</span>`;
+                    }).join('')}
+                </div>
+                <div class="compliance-result" id="compliance-${account.account_number}"></div>
+                <div class="call-status" id="call-status-${account.account_number}"></div>
+            </div>
+            <div class="card-footer">
+                <button class="btn-check" onclick="checkCompliance('${account.account_number}')">
+                    Check Compliance
+                </button>
+                <button class="btn-call" id="call-btn-${account.account_number}" onclick="startCall('${account.account_number}')">
+                    Start Call
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+async function refreshAccounts() {
+    try {
+        const res = await fetch(`${API_BASE}/accounts`);
+        const accounts = await res.json();
+        const grid = document.getElementById('accounts-grid');
+        grid.innerHTML = accounts.map(renderAccount).join('');
+    } catch (e) {
+        console.error('Failed to load accounts:', e);
+    }
+}
+
+async function refreshLogs() {
+    try {
+        const res = await fetch(`${API_BASE}/call/logs`);
+        const logs = await res.json();
+        const body = document.getElementById('logs-body');
+
+        if (!logs.length) {
+            body.innerHTML = '<p class="logs-empty">No call logs yet.</p>';
+            return;
+        }
+
+        body.innerHTML = logs.slice().reverse().map(log => `
+            <div class="log-entry">
+                <span class="log-time">${new Date(log.timestamp).toLocaleString()}</span>
+                &mdash;
+                <span class="log-account">${log.account_number || 'Unknown'}</span>
+                &mdash;
+                ${log.summary || log.outcome || 'No summary'}
+            </div>
+        `).join('');
+    } catch (e) {
+        console.error('Failed to load logs:', e);
+    }
+}
+
+async function checkCompliance(accountNumber) {
+    const el = document.getElementById(`compliance-${accountNumber}`);
+    el.className = 'compliance-result';
+    el.style.display = 'block';
+    el.textContent = 'Checking...';
+
+    try {
+        const res = await fetch(`${API_BASE}/call/check`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ account_number: accountNumber }),
+        });
+        const data = await res.json();
+
+        if (data.allowed) {
+            el.className = 'compliance-result allowed';
+            el.textContent = `Allowed — Call attempt #${data.call_attempt_number}`;
+        } else {
+            el.className = 'compliance-result blocked';
+            el.textContent = `Blocked — ${data.reason}`;
+        }
+
+        refreshAccounts().then(() => {
+            const newEl = document.getElementById(`compliance-${accountNumber}`);
+            if (newEl) {
+                newEl.className = el.className;
+                newEl.textContent = el.textContent;
+                newEl.style.display = 'block';
+            }
+        });
+    } catch (e) {
+        el.className = 'compliance-result blocked';
+        el.textContent = `Error: ${e.message}`;
+    }
+}
+
+async function startCall(accountNumber) {
+    const statusEl = document.getElementById(`call-status-${accountNumber}`);
+    statusEl.className = 'call-status visible';
+    statusEl.innerHTML = '&#9742; Vapi Web SDK call will be connected here in Phase 5.<br><small>The compliance check, account variable injection, and call flow are ready.</small>';
+
+    const btn = document.getElementById(`call-btn-${accountNumber}`);
+    btn.disabled = true;
+    btn.textContent = 'Pending SDK';
+}
+
+async function resetData() {
+    if (!confirm('Reset all account data and call logs to their original state?')) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/data/reset`, { method: 'POST' });
+        if (res.ok) {
+            refreshAccounts();
+            refreshLogs();
+        } else {
+            alert('Reset endpoint not available yet.');
+        }
+    } catch (e) {
+        alert('Reset endpoint not available yet.');
+    }
+}
+
+refreshAccounts();
+refreshLogs();
+</script>
+
+</body>
+</html>

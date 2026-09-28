@@ -1,12 +1,16 @@
 import json
 from datetime import datetime
+from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from call_handler import handle_end_of_call, get_call_logs
 from compliance import check_compliance
-from data import load_accounts
+from data import load_accounts, snapshot_original, reset_data
 from tools import TOOL_HANDLERS
 
 
@@ -14,6 +18,20 @@ class CallCheckRequest(BaseModel):
     account_number: str
 
 app = FastAPI(title="Collections Voice Agent Backend")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+DASHBOARD_DIR = Path(__file__).parent / "dashboard"
+
+
+@app.on_event("startup")
+def on_startup():
+    snapshot_original()
 
 
 @app.post("/vapi/webhook")
@@ -66,6 +84,20 @@ async def call_logs():
     return get_call_logs()
 
 
+@app.post("/data/reset")
+async def data_reset():
+    reset_data()
+    return {"status": "reset", "timestamp": datetime.now().isoformat()}
+
+
 @app.get("/health")
 async def health():
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+
+@app.get("/dashboard")
+async def dashboard():
+    return FileResponse(DASHBOARD_DIR / "index.html")
+
+
+app.mount("/dashboard/static", StaticFiles(directory=DASHBOARD_DIR), name="dashboard-static")
