@@ -457,7 +457,7 @@ async function refreshLogs() {
 
         logsCache = logs.slice().reverse();
         body.innerHTML = logsCache.map(function(log, i) {
-            var summaryText = log.summary || ('Ended: ' + (log.ended_reason || 'unknown') + (log.duration_seconds ? ' — ' + log.duration_seconds + 's' : ''));
+            var summaryText = log.summary || ('Ended: ' + friendlyEndedReason(log.ended_reason) + (log.duration_seconds ? ' — ' + log.duration_seconds + 's' : ''));
             var transcriptHtml = '';
             if (log.transcript) {
                 var safeTranscript = String(log.transcript).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -653,6 +653,16 @@ async function resetData() {
     }
 }
 
+function friendlyEndedReason(reason) {
+    if (!reason) return 'Unknown';
+    if (reason.includes('transfer')) return 'Transferred to live agent';
+    if (reason === 'assistant-ended-call') return 'Agent ended call';
+    if (reason === 'customer-ended-call') return 'Customer ended call';
+    if (reason === 'silence-timed-out') return 'Silence timeout';
+    if (reason === 'voicemail') return 'Voicemail';
+    return reason;
+}
+
 function toggleTranscript(id, btn) {
     var el = document.getElementById(id);
     if (!el) return;
@@ -667,7 +677,7 @@ function downloadTranscript(index) {
         + 'Account: ' + (log.account_number || 'Unknown') + '\n'
         + 'Date: ' + new Date(log.timestamp).toLocaleString() + '\n'
         + 'Duration: ' + (log.duration_seconds ? log.duration_seconds + 's' : 'N/A') + '\n'
-        + 'Ended: ' + (log.ended_reason || 'unknown') + '\n'
+        + 'Ended: ' + friendlyEndedReason(log.ended_reason) + '\n'
         + '---\n\n';
     var blob = new Blob([header + log.transcript], { type: 'text/plain' });
     var url = URL.createObjectURL(blob);
