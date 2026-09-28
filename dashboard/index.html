@@ -237,6 +237,29 @@
             font-size: 0.8rem;
             font-style: italic;
         }
+        .transcript-toggle {
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-size: 0.75rem;
+            cursor: pointer;
+            padding: 2px 0;
+            margin-left: 8px;
+        }
+        .transcript-toggle:hover { text-decoration: underline; }
+        .transcript-box {
+            display: none;
+            margin-top: 8px;
+            padding: 10px 14px;
+            background: var(--bg);
+            border-radius: 8px;
+            font-size: 0.75rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .transcript-box.visible { display: block; }
 
         @media (max-width: 768px) {
             body { padding: 12px; }
@@ -430,13 +453,21 @@ async function refreshLogs() {
             return;
         }
 
-        body.innerHTML = logs.slice().reverse().map(function(log) {
+        body.innerHTML = logs.slice().reverse().map(function(log, i) {
+            var summaryText = log.summary || ('Ended: ' + (log.ended_reason || 'unknown') + (log.duration_seconds ? ' — ' + log.duration_seconds + 's' : ''));
+            var transcriptHtml = '';
+            if (log.transcript) {
+                var safeTranscript = String(log.transcript).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                transcriptHtml = '<button class="transcript-toggle" onclick="toggleTranscript(\'transcript-' + i + '\', this)">Show Transcript</button>'
+                    + '<div class="transcript-box" id="transcript-' + i + '">' + safeTranscript + '</div>';
+            }
             return '<div class="log-entry">'
                 + '<span class="log-time">' + new Date(log.timestamp).toLocaleString() + '</span>'
                 + ' &mdash; '
                 + '<span class="log-account">' + (log.account_number || 'Unknown') + '</span>'
                 + ' &mdash; '
-                + (log.summary || ('Ended: ' + (log.ended_reason || 'unknown') + (log.duration_seconds ? ' — ' + log.duration_seconds + 's' : '')))
+                + summaryText
+                + transcriptHtml
                 + '</div>';
         }).join('');
         showStatus('Call logs refreshed (' + logs.length + ' entries)');
@@ -597,6 +628,15 @@ async function resetData() {
         alert('Reset failed: ' + e.message);
     }
 }
+
+function toggleTranscript(id, btn) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var showing = el.classList.toggle('visible');
+    btn.textContent = showing ? 'Hide Transcript' : 'Show Transcript';
+}
+
+window.toggleTranscript = toggleTranscript;
 
 loadVapiSdk();
 loadConfig();
