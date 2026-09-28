@@ -536,12 +536,26 @@ async function startCall(accountNumber) {
 
     var btn = document.getElementById('call-btn-' + accountNumber);
     btn.disabled = true;
-    btn.textContent = 'Connecting...';
-
-    activeCallAccount = accountNumber;
-    updateCallStatus(accountNumber, 'Connecting to agent...', '');
+    btn.textContent = 'Checking...';
 
     try {
+        var compRes = await fetch(API_BASE + '/call/check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ account_number: accountNumber }),
+        });
+        var compData = await compRes.json();
+        if (!compData.allowed) {
+            updateCallStatus(accountNumber, 'Blocked — ' + compData.reason, 'ended');
+            btn.textContent = 'Start Call';
+            btn.disabled = false;
+            return;
+        }
+
+        activeCallAccount = accountNumber;
+        btn.textContent = 'Connecting...';
+        updateCallStatus(accountNumber, 'Connecting to agent...', '');
+
         await fetch(API_BASE + '/call/start', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
