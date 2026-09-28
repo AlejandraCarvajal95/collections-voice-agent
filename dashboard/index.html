@@ -577,7 +577,9 @@ async function startCall(accountNumber) {
 
         vapi.on('error', function(e) {
             console.error('Vapi error:', e);
-            updateCallStatus(accountNumber, 'Call error — please try again', 'ended');
+            var msg = (e && (e.message || e.errorMsg || JSON.stringify(e))) || '';
+            var isTransfer = msg.toLowerCase().includes('eject') || msg.toLowerCase().includes('transfer');
+            updateCallStatus(accountNumber, isTransfer ? 'Transferred to live agent' : 'Call error — please try again', 'ended');
             cleanupCall(accountNumber);
         });
 
