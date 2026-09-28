@@ -302,9 +302,9 @@ let accountsCache = [];
 let callCheckInterval = null;
 let logsCache = [];
 
-function cleanupCall(accountNumber) {
+function cleanupCall(accountNumber, statusMsg) {
     if (!accountNumber) return;
-    updateCallStatus(accountNumber, 'Call ended — waiting for report...', 'ended');
+    updateCallStatus(accountNumber, statusMsg || 'Call ended — waiting for report...', 'ended');
     const card = document.getElementById('card-' + accountNumber);
     if (card) card.classList.remove('on-call');
     const btn = document.getElementById('call-btn-' + accountNumber);
@@ -581,8 +581,7 @@ async function startCall(accountNumber) {
             console.error('Vapi error:', e);
             var errorType = e && e.error && e.error.error && e.error.error.type;
             var isTransfer = errorType === 'ejected' || callConnected;
-            updateCallStatus(accountNumber, isTransfer ? 'Transferred to live agent' : 'Call error — please try again', 'ended');
-            cleanupCall(accountNumber);
+            cleanupCall(accountNumber, isTransfer ? 'Transferred to live agent' : 'Call error — please try again');
         });
 
         await vapi.start(vapiConfig.assistantId, {
