@@ -304,7 +304,8 @@ let logsCache = [];
 
 function cleanupCall(accountNumber, statusMsg) {
     if (!accountNumber) return;
-    updateCallStatus(accountNumber, statusMsg || 'Call ended — waiting for report...', 'ended');
+    var custom = !!statusMsg;
+    updateCallStatus(accountNumber, statusMsg || 'Call ended — waiting for report...', 'ended', custom);
     const card = document.getElementById('card-' + accountNumber);
     if (card) card.classList.remove('on-call');
     const btn = document.getElementById('call-btn-' + accountNumber);
@@ -319,11 +320,13 @@ function cleanupCall(accountNumber, statusMsg) {
     if (callCheckInterval) { clearInterval(callCheckInterval); callCheckInterval = null; }
     setTimeout(function() { refreshAccounts(); refreshLogs(); }, 2000);
     setTimeout(function() { refreshAccounts(); refreshLogs(); }, 6000);
-    setTimeout(function() {
-        refreshAccounts();
-        refreshLogs();
-        updateCallStatus(accountNumber, 'Call ended — data updated', 'ended');
-    }, 12000);
+    if (!custom) {
+        setTimeout(function() {
+            refreshAccounts();
+            refreshLogs();
+            updateCallStatus(accountNumber, 'Call ended — data updated', 'ended');
+        }, 12000);
+    }
 }
 
 async function loadVapiSdk() {
@@ -364,11 +367,15 @@ async function loadConfig() {
     }
 }
 
-function updateCallStatus(accountNumber, text, state) {
+function updateCallStatus(accountNumber, text, state, dismissible) {
     var el = document.getElementById('call-status-' + accountNumber);
     if (!el) return;
     el.className = 'call-status visible ' + (state || '');
-    el.textContent = text;
+    if (dismissible) {
+        el.innerHTML = text + ' <span onclick="this.parentElement.className=\'call-status\'" style="cursor:pointer;margin-left:8px;opacity:0.6;font-weight:bold;">&times;</span>';
+    } else {
+        el.textContent = text;
+    }
 }
 
 function formatMoney(val) {
