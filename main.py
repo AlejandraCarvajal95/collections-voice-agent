@@ -3,6 +3,8 @@ from datetime import datetime
 
 from fastapi import FastAPI, Request
 
+from compliance import check_compliance
+from data import load_accounts
 from tools import TOOL_HANDLERS
 
 app = FastAPI(title="Collections Voice Agent Backend")
@@ -38,6 +40,18 @@ async def vapi_webhook(request: Request):
         return {"results": results}
 
     return {"ok": True}
+
+
+@app.post("/call/check")
+async def call_check(request: Request):
+    body = await request.json()
+    account_number = body.get("account_number", "")
+    return check_compliance(account_number)
+
+
+@app.get("/accounts")
+async def get_accounts():
+    return load_accounts()
 
 
 @app.get("/health")

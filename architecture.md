@@ -5,39 +5,45 @@
 The system has three layers. Each layer has a clear responsibility and a clear place where you configure it.
 
 ```
+┌──────────────────────────────────────────────────────────────┐
+│                     DEMO DASHBOARD                           │
+│                                                              │
+│  [James Carter] [Maria Lopez] [David Kim] [Sarah Brooks]     │
+│       Call ✓        Call ✓       Call ✓      BLOCKED ✗        │
+│                                                              │
+│  Click "Call" → compliance check → Vapi Web SDK starts call  │
+└──────────────────────────┬───────────────────────────────────┘
+                           │
+                           ▼
 ┌─────────────────────────────────────────────────────────┐
 │                     VAPI PLATFORM                       │
 │                                                         │
 │  ┌─────────────┐  ┌──────────┐  ┌────────────────────┐  │
-│  │   System     │  │  Tools   │  │  Call Settings      │  │
-│  │   Prompt     │  │  Config  │  │  (per-call API)     │  │
+│  │   System     │  │  Tools   │  │  Web SDK Call       │  │
+│  │   Prompt     │  │  Config  │  │  (variables from    │  │
+│  │              │  │  (5 tools)│  │   dashboard)        │  │
 │  └──────┬──────┘  └────┬─────┘  └─────────┬──────────┘  │
-│         │              │                  │              │
-│         │   Liquid      │   POST webhook   │   JSON       │
-│         │   variables   │   on tool call   │   payload    │
-│         │   injected    │                  │   at dial    │
-│         │   at runtime  │                  │   time       │
+│         │   Liquid      │   POST webhook   │              │
+│         │   variables   │   on tool call   │              │
+│         │   injected    │                  │              │
 └─────────┼──────────────┼──────────────────┼──────────────┘
           │              │                  │
           │              ▼                  │
-          │    ┌──────────────────┐         │
-          │    │  YOUR BACKEND    │         │
-          │    │  (FastAPI)       │         │
-          │    │                  │         │
-          │    │  /record-payment │         │
-          │    │  /set-promise    │         │
-          │    │  /flag-dnc       │         │
-          │    │  /flag-dispute   │         │
-          │    └──────────────────┘         │
+          │    ┌──────────────────────┐     │
+          │    │  YOUR BACKEND        │     │
+          │    │  (FastAPI)           │     │
+          │    │                      │     │
+          │    │  POST /vapi/webhook  │     │
+          │    │  POST /call/check    │     │
+          │    │  GET  /accounts      │     │
+          │    └──────────────────────┘     │
           │              │                  │
           │              ▼                  │
           │    ┌──────────────────┐         │
-          │    │  ACCOUNT DATA    │◄────────┘
-          │    │  (JSON / DB)     │
+          │    │  accounts.json   │◄────────┘
           │    │                  │
-          │    │  Consumer info   │
-          │    │  Account flags   │
-          │    │  Balance data    │
+          │    │  4 test accounts │
+          │    │  flags + balances│
           │    └──────────────────┘
           │
           ▼
@@ -120,16 +126,35 @@ These values become available in the system prompt as Liquid variables: `{{consu
 
 ## Layer 2: Your Backend (FastAPI Server)
 
-A lightweight Python server that Vapi calls when the LLM decides to use a tool. You deploy it to a free host (Railway or Render) so it has a public URL.
+A lightweight Python server that Vapi calls when the LLM decides to use a tool. Deployed to a free host (Railway or Render) for a public URL.
 
-### Endpoints
+### Architecture
 
-| Endpoint | When Vapi calls it | What it does | Returns to Vapi |
-|---|---|---|---|
-| `POST /record-payment` | Consumer agrees to pay now | Logs the payment (amount, method, date) | `{ "status": "success", "confirmation_number": "PAY-20240920-001" }` |
-| `POST /set-promise` | Consumer commits to a future date | Logs the promise (amount, date) | `{ "status": "success", "promise_date": "2024-09-27", "amount": 435.00 }` |
-| `POST /flag-dnc` | Consumer says "stop calling me" | Sets the do-not-call flag on the account | `{ "status": "success", "message": "Account flagged as do-not-call" }` |
-| `POST /flag-dispute` | Consumer says "I don't owe this" | Sets the dispute flag, triggers validation letter process | `{ "status": "success", "message": "Dispute noted, validation letter will be sent" }` |
+Single webhook endpoint (`POST /vapi/webhook`) routes all tool calls by function name via a `TOOL_HANDLERS` dictionary. Adding a new tool = add a handler file + register it in the dictionary. The webhook never changes.
+
+### Tool Handlers
+
+| Tool | Parameters | What it writes to `accounts.json` |
+|---|---|---|
+| `record_payment` | account_number, amount, method | Reduces `past_due_amount`, returns confirmation number |
+| `set_promise_to_pay` | account_number, amount, date | Sets `promise_to_pay_exists/date/amount` |
+| `flag_do_not_call` | account_number | Sets `do_not_call` → true (FDCPA §1692c(c)) |
+| `flag_dispute` | account_number | Sets `active_dispute` → true (FDCPA §1692g) |
+| `flag_attorney` | account_number | Sets `has_attorney` → true (FDCPA §1692c(a)(2)) |
+
+Each tool has a `.py` handler and a `.json` Vapi definition in the `tools/` folder.
+
+### Pre-call Compliance Check
+
+`POST /call/check` — server-side gate that runs before any call is initiated:
+
+1. `cease_and_desist == true` → blocked
+2. `do_not_call == true` → blocked
+3. `has_attorney == true` → blocked
+4. `call_attempts_last_7_days >= 7` → blocked (Reg F)
+5. Outside 8am-9pm in consumer's state timezone → blocked (FDCPA §1692c(a)(1))
+
+If all checks pass → call is allowed, Vapi Web SDK starts the call with the account's variables.
 
 ### How the webhook flow works
 
@@ -137,60 +162,28 @@ A lightweight Python server that Vapi calls when the LLM decides to use a tool. 
 1. Consumer says: "I'd like to pay the full amount today"
 2. Vapi STT transcribes it
 3. LLM reads the prompt + transcript → decides to call `record_payment`
-4. Vapi sends POST to YOUR server:
+4. Vapi sends POST to your server:
    {
      "message": {
-       "toolCalls": [{
+       "type": "tool-calls",
+       "toolCallList": [{
+         "id": "call_abc123",
          "function": {
            "name": "record_payment",
-           "arguments": { "amount": 1247.83, "method": "phone" }
+           "arguments": {
+             "account_number": "CH7723849",
+             "amount": 189.00,
+             "method": "phone"
+           }
          }
        }]
      }
    }
-5. Your server processes it, returns JSON result
-6. Vapi feeds the result back to the LLM
-7. LLM generates a spoken response: "I've recorded your payment of 
-   twelve hundred forty-seven dollars and eighty-three cents. 
-   Your confirmation number is PAY-20240920-001."
-8. Vapi TTS speaks it to the consumer
-```
-
-### Tool definitions in Vapi (what you enter in the Dashboard)
-
-Each tool needs a definition. Example for `record_payment`:
-
-```json
-{
-  "type": "function",
-  "function": {
-    "name": "record_payment",
-    "description": "Use this tool when the consumer agrees to make a payment right now. Call it with the payment amount and method.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "amount": {
-          "type": "number",
-          "description": "The dollar amount the consumer agreed to pay (e.g., 435.00)"
-        },
-        "method": {
-          "type": "string",
-          "description": "How the payment is being made (e.g., 'phone', 'online', 'check')"
-        }
-      },
-      "required": ["amount"]
-    }
-  },
-  "messages": [
-    {
-      "type": "request-start",
-      "content": "Let me note that payment on your account."
-    }
-  ],
-  "server": {
-    "url": "https://your-backend.railway.app/record-payment"
-  }
-}
+5. Your server routes by function name → handler processes it
+6. Returns: { "results": [{ "toolCallId": "call_abc123", "result": "{...}" }] }
+7. Vapi feeds the result back to the LLM
+8. LLM speaks: "Your payment of one hundred eighty-nine dollars has been
+   recorded. Your confirmation number is PAY-20240920-3849."
 ```
 
 ---
@@ -237,12 +230,30 @@ Account JSON → Vapi API call (variableValues) → Liquid variables in prompt �
 
 ---
 
+## Layer 4: Demo Dashboard (Minimal HTML)
+
+A single HTML page that serves as the demo interface during the evaluation call.
+
+### Features
+
+- 4 account cards showing consumer name, key flags, and account status
+- "Call" button per card → triggers pre-call compliance check
+- If blocked → shows reason (e.g., "Call blocked: cease-and-desist flag active")
+- If allowed → starts Vapi Web SDK call with that account's variables injected
+- After the call → shows what changed in `accounts.json` (proves persistent data)
+
+### Why a dashboard instead of using Vapi's Dashboard directly
+
+Vapi's Dashboard test call always uses the same variable values configured in the assistant. To switch accounts, you'd have to manually edit variables each time — slow and error-prone during a live demo. The Web SDK lets the dashboard inject different account data per call automatically.
+
+---
+
 ## Configuration you do NOT need
 
 Things that might seem necessary but aren't for this demo:
 
-- **No database server** — a JSON file or Python dict is fine for 4 test accounts
+- **No database server** — a JSON file is fine for 4 test accounts
 - **No authentication on your webhook** — for the demo, open endpoints are acceptable. In production you'd validate Vapi's server secret header
 - **No CI/CD pipeline** — deploy manually to Railway/Render
-- **No frontend/UI** — everything is configured in Vapi's Dashboard and tested via phone calls
-- **No Vapi SDK** — you can use the Dashboard for everything. The API is only needed if you want to trigger calls programmatically (optional)
+- **No new client registration** — 4 test accounts cover all compliance scenarios
+- **No call recording/transcription storage** — Vapi handles this in its Dashboard
