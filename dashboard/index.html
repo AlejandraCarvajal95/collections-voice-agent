@@ -267,11 +267,11 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@vapi-ai/web@2/dist/vapi.min.js"></script>
 <script>
 const API_BASE = window.location.origin;
 
 let vapiInstance = null;
+let vapiConfig = { assistantId: '', publicKey: '' };
 let activeCallAccount = null;
 let accountsCache = [];
 
@@ -287,50 +287,18 @@ async function loadConfig() {
             return;
         }
 
-        vapiInstance = new window.Vapi(config.vapi_public_key);
-        vapiInstance._assistantId = config.vapi_assistant_id;
+        vapiConfig.publicKey = config.vapi_public_key;
+        vapiConfig.assistantId = config.vapi_assistant_id;
 
-        vapiInstance.on('call-start', () => {
-            updateCallStatus(activeCallAccount, 'Call connected — speaking with agent', 'active');
-            const card = document.getElementById(`card-${activeCallAccount}`);
-            if (card) card.classList.add('on-call');
-        });
-
-        vapiInstance.on('call-end', () => {
-            updateCallStatus(activeCallAccount, 'Call ended — refreshing data...', 'ended');
-            const card = document.getElementById(`card-${activeCallAccount}`);
-            if (card) card.classList.remove('on-call');
-
-            const btn = document.getElementById(`call-btn-${activeCallAccount}`);
-            if (btn) {
-                btn.textContent = 'Start Call';
-                btn.disabled = false;
-                btn.className = 'btn-call';
-                btn.onclick = () => startCall(activeCallAccount);
-            }
-
-            setTimeout(() => {
-                refreshAccounts();
-                refreshLogs();
-            }, 2000);
-
-            activeCallAccount = null;
-        });
-
-        vapiInstance.on('error', (e) => {
-            console.error('Vapi error:', e);
-            if (activeCallAccount) {
-                updateCallStatus(activeCallAccount, 'Call error — please try again', 'ended');
-                const btn = document.getElementById(`call-btn-${activeCallAccount}`);
-                if (btn) {
-                    btn.textContent = 'Start Call';
-                    btn.disabled = false;
-                    btn.className = 'btn-call';
-                    btn.onclick = () => startCall(activeCallAccount);
-                }
-                activeCallAccount = null;
-            }
-        });
+        // Load the Vapi Web SDK
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.textContent = `
+            import Vapi from 'https://cdn.jsdelivr.net/npm/@vapi-ai/web@2/+esm';
+            window.Vapi = Vapi;
+            console.log('Vapi SDK loaded successfully');
+        `;
+        document.head.appendChild(script);
 
     } catch (e) {
         console.warn('Could not load config:', e);
@@ -492,7 +460,7 @@ async function checkCompliance(accountNumber) {
 }
 
 async function startCall(accountNumber) {
-    if (!vapiInstance || !vapiInstance._assistantId) {
+    if (!vapiConfig.publicKey) {
         updateCallStatus(accountNumber, 'Vapi not configured — set VAPI_PUBLIC_KEY and VAPI_ASSISTANT_ID in environment variables', 'ended');
         return;
     }
@@ -509,11 +477,41 @@ async function startCall(accountNumber) {
     btn.disabled = true;
     btn.textContent = 'Connecting...';
 
-    updateCallStatus(accountNumber, 'Running compliance check...', '');
     activeCallAccount = accountNumber;
+    updateCallStatus(accountNumber, 'Connecting to agent...', '');
 
     try {
-        vapiInstance.start(vapiInstance._assistantId, {
+        const vapi = new window.Vapi(vapiConfig.publicKey);
+
+        vapi.on('call-start', () => {
+            updateCallStatus(accountNumber, 'Call connected — speaking with agent', 'active');
+            const card = document.getElementById(`card-${accountNumber}`);
+            if (card) card.classList.add('on-call');
+        });
+
+        vapi.on('call-end', () => {
+            updateCallStatus(accountNumber, 'Call ended — refreshing data...', 'ended');
+            const card = document.getElementById(`card-${accountNumber}`);
+            if (card) card.classList.remove('on-call');
+            btn.textContent = 'Start Call';
+            btn.disabled = false;
+            btn.className = 'btn-call';
+            btn.onclick = () => startCall(accountNumber);
+            activeCallAccount = null;
+            setTimeout(() => { refreshAccounts(); refreshLogs(); }, 2000);
+        });
+
+        vapi.on('error', (e) => {
+            console.error('Vapi error:', e);
+            updateCallStatus(accountNumber, 'Call error — please try again', 'ended');
+            btn.textContent = 'Start Call';
+            btn.disabled = false;
+            btn.className = 'btn-call';
+            btn.onclick = () => startCall(accountNumber);
+            activeCallAccount = null;
+        });
+
+        await vapi.start(vapiConfig.assistantId, {
             variableValues: {
                 consumer_first_name: account.consumer_first_name,
                 consumer_last_name: account.consumer_last_name,
@@ -541,7 +539,7 @@ async function startCall(accountNumber) {
             },
         });
 
-        updateCallStatus(accountNumber, 'Connecting to agent...', '');
+        vapiInstance = vapi;
         btn.textContent = 'End Call';
         btn.disabled = false;
         btn.className = 'btn-end';
@@ -560,6 +558,7 @@ async function startCall(accountNumber) {
 function endCall() {
     if (vapiInstance) {
         vapiInstance.stop();
+        vapiInstance = null;
     }
 }
 
