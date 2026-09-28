@@ -253,10 +253,11 @@
 </header>
 
 <div class="controls">
-    <button onclick="refreshAccounts()">Refresh Accounts</button>
-    <button onclick="refreshLogs()">Refresh Call Logs</button>
+    <button id="btn-refresh-accounts" onclick="refreshAccounts()">Refresh Accounts</button>
+    <button id="btn-refresh-logs" onclick="refreshLogs()">Refresh Call Logs</button>
     <button onclick="resetData()">Reset Demo Data</button>
 </div>
+<div id="status-bar" style="text-align:center;font-size:0.8rem;color:var(--text-light);min-height:1.2em;margin-bottom:8px;"></div>
 
 <div class="grid" id="accounts-grid"></div>
 
@@ -267,13 +268,10 @@
     </div>
 </div>
 
-<script type="module">
-import VapiModule from 'https://cdn.jsdelivr.net/npm/@vapi-ai/web@2/+esm';
-const VapiClass = VapiModule.default || VapiModule;
-console.log('Vapi SDK loaded:', typeof VapiClass);
-
+<script>
 const API_BASE = window.location.origin;
 
+let VapiClass = null;
 let vapiInstance = null;
 let vapiConfig = { assistantId: '', publicKey: '' };
 let activeCallAccount = null;
@@ -283,33 +281,43 @@ let callCheckInterval = null;
 function cleanupCall(accountNumber) {
     if (!accountNumber) return;
     updateCallStatus(accountNumber, 'Call ended — waiting for report...', 'ended');
-    const card = document.getElementById(`card-${accountNumber}`);
+    const card = document.getElementById('card-' + accountNumber);
     if (card) card.classList.remove('on-call');
-    const btn = document.getElementById(`call-btn-${accountNumber}`);
+    const btn = document.getElementById('call-btn-' + accountNumber);
     if (btn) {
         btn.textContent = 'Start Call';
         btn.disabled = false;
         btn.className = 'btn-call';
-        btn.onclick = () => startCall(accountNumber);
+        btn.onclick = function() { startCall(accountNumber); };
     }
     activeCallAccount = null;
     vapiInstance = null;
     if (callCheckInterval) { clearInterval(callCheckInterval); callCheckInterval = null; }
-    setTimeout(() => { refreshAccounts(); refreshLogs(); }, 2000);
-    setTimeout(() => { refreshAccounts(); refreshLogs(); }, 6000);
-    setTimeout(() => {
+    setTimeout(function() { refreshAccounts(); refreshLogs(); }, 2000);
+    setTimeout(function() { refreshAccounts(); refreshLogs(); }, 6000);
+    setTimeout(function() {
         refreshAccounts();
         refreshLogs();
         updateCallStatus(accountNumber, 'Call ended — data updated', 'ended');
     }, 12000);
 }
 
+async function loadVapiSdk() {
+    try {
+        var mod = await import('https://cdn.jsdelivr.net/npm/@vapi-ai/web@2/+esm');
+        VapiClass = mod.default || mod;
+        console.log('Vapi SDK loaded');
+    } catch (e) {
+        console.warn('Vapi SDK failed to load — calls disabled:', e);
+    }
+}
+
 async function loadConfig() {
     try {
-        const res = await fetch(`${API_BASE}/config`, {
+        var res = await fetch(API_BASE + '/config', {
             headers: { 'X-Dashboard-Token': 'collections-demo-2026' },
         });
-        const config = await res.json();
+        var config = await res.json();
 
         if (!config.vapi_public_key) {
             console.warn('Vapi public key not configured');
@@ -319,16 +327,15 @@ async function loadConfig() {
         vapiConfig.publicKey = config.vapi_public_key;
         vapiConfig.assistantId = config.vapi_assistant_id;
         console.log('Vapi config loaded');
-
     } catch (e) {
         console.warn('Could not load config:', e);
     }
 }
 
 function updateCallStatus(accountNumber, text, state) {
-    const el = document.getElementById(`call-status-${accountNumber}`);
+    var el = document.getElementById('call-status-' + accountNumber);
     if (!el) return;
-    el.className = `call-status visible ${state || ''}`;
+    el.className = 'call-status visible ' + (state || '');
     el.textContent = text;
 }
 
@@ -337,149 +344,142 @@ function formatMoney(val) {
 }
 
 function renderAccount(account) {
-    const hasActiveFlags = account.cease_and_desist || account.do_not_call || account.has_attorney || account.active_dispute;
-    const ptpInfo = account.promise_to_pay_exists
-        ? `<div class="field"><label>Promise to Pay</label><span>${account.promise_to_pay_date} — ${formatMoney(account.promise_to_pay_amount)}</span></div>`
+    var hasActiveFlags = account.cease_and_desist || account.do_not_call || account.has_attorney || account.active_dispute;
+    var ptpInfo = account.promise_to_pay_exists
+        ? '<div class="field"><label>Promise to Pay</label><span>' + account.promise_to_pay_date + ' — ' + formatMoney(account.promise_to_pay_amount) + '</span></div>'
         : '';
 
-    const isOnCall = activeCallAccount === account.account_number;
+    var isOnCall = activeCallAccount === account.account_number;
+    var flags = ['cease_and_desist', 'do_not_call', 'has_attorney', 'active_dispute'];
+    var flagsHtml = flags.map(function(f) {
+        var label = f.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+        return account[f]
+            ? '<span class="flag">' + label + '</span>'
+            : '<span class="flag inactive">' + label + ': No</span>';
+    }).join('');
 
-    return `
-        <div class="card ${isOnCall ? 'on-call' : ''}" id="card-${account.account_number}">
-            <div class="card-header">
-                <div>
-                    <h2>${account.consumer_first_name} ${account.consumer_last_name}</h2>
-                    <span class="account-num">${account.account_number} &middot; ${account.product_type}</span>
-                </div>
-                ${hasActiveFlags
-                    ? '<span class="badge badge-blocked">Blocked</span>'
-                    : `<span class="badge badge-ok">${account.days_past_due} DPD</span>`}
-            </div>
-            <div class="card-body">
-                <div class="field-grid">
-                    <div class="field">
-                        <label>Past Due</label>
-                        <span style="color:var(--danger)">${formatMoney(account.past_due_amount)}</span>
-                    </div>
-                    <div class="field">
-                        <label>Min Payment</label>
-                        <span>${formatMoney(account.minimum_payment)}</span>
-                    </div>
-                    <div class="field">
-                        <label>Total Balance</label>
-                        <span>${formatMoney(account.total_balance)}</span>
-                    </div>
-                    <div class="field">
-                        <label>State</label>
-                        <span>${account.consumer_state}</span>
-                    </div>
-                    <div class="field">
-                        <label>Call Attempts (7d)</label>
-                        <span>${account.call_attempts_last_7_days} / 7</span>
-                    </div>
-                    <div class="field">
-                        <label>Last Contact</label>
-                        <span>${account.last_contact_date || 'Never'}</span>
-                    </div>
-                    ${ptpInfo}
-                </div>
-                <div class="flags">
-                    ${['cease_and_desist', 'do_not_call', 'has_attorney', 'active_dispute'].map(f => {
-                        const label = f.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                        return account[f]
-                            ? `<span class="flag">${label}</span>`
-                            : `<span class="flag inactive">${label}: No</span>`;
-                    }).join('')}
-                </div>
-                <div class="compliance-result" id="compliance-${account.account_number}"></div>
-                <div class="call-status" id="call-status-${account.account_number}"></div>
-            </div>
-            <div class="card-footer">
-                <button class="btn-check" onclick="checkCompliance('${account.account_number}')">
-                    Check Compliance
-                </button>
-                ${isOnCall
-                    ? `<button class="btn-end" id="call-btn-${account.account_number}" onclick="endCall()">End Call</button>`
-                    : `<button class="btn-call" id="call-btn-${account.account_number}" onclick="startCall('${account.account_number}')">Start Call</button>`
-                }
-            </div>
-        </div>
-    `;
+    var badgeHtml = hasActiveFlags
+        ? '<span class="badge badge-blocked">Blocked</span>'
+        : '<span class="badge badge-ok">' + account.days_past_due + ' DPD</span>';
+
+    var callBtnHtml = isOnCall
+        ? '<button class="btn-end" id="call-btn-' + account.account_number + '" onclick="endCall()">End Call</button>'
+        : '<button class="btn-call" id="call-btn-' + account.account_number + '" onclick="startCall(\'' + account.account_number + '\')">Start Call</button>';
+
+    return '<div class="card ' + (isOnCall ? 'on-call' : '') + '" id="card-' + account.account_number + '">'
+        + '<div class="card-header"><div>'
+        + '<h2>' + account.consumer_first_name + ' ' + account.consumer_last_name + '</h2>'
+        + '<span class="account-num">' + account.account_number + ' &middot; ' + account.product_type + '</span>'
+        + '</div>' + badgeHtml + '</div>'
+        + '<div class="card-body"><div class="field-grid">'
+        + '<div class="field"><label>Past Due</label><span style="color:var(--danger)">' + formatMoney(account.past_due_amount) + '</span></div>'
+        + '<div class="field"><label>Min Payment</label><span>' + formatMoney(account.minimum_payment) + '</span></div>'
+        + '<div class="field"><label>Total Balance</label><span>' + formatMoney(account.total_balance) + '</span></div>'
+        + '<div class="field"><label>State</label><span>' + account.consumer_state + '</span></div>'
+        + '<div class="field"><label>Call Attempts (7d)</label><span>' + account.call_attempts_last_7_days + ' / 7</span></div>'
+        + '<div class="field"><label>Last Contact</label><span>' + (account.last_contact_date || 'Never') + '</span></div>'
+        + ptpInfo
+        + '</div>'
+        + '<div class="flags">' + flagsHtml + '</div>'
+        + '<div class="compliance-result" id="compliance-' + account.account_number + '"></div>'
+        + '<div class="call-status" id="call-status-' + account.account_number + '"></div>'
+        + '</div>'
+        + '<div class="card-footer">'
+        + '<button class="btn-check" onclick="checkCompliance(\'' + account.account_number + '\')">Check Compliance</button>'
+        + callBtnHtml
+        + '</div></div>';
+}
+
+function showStatus(msg, isError) {
+    var bar = document.getElementById('status-bar');
+    bar.textContent = msg;
+    bar.style.color = isError ? 'var(--danger)' : 'var(--success)';
+    if (!isError) setTimeout(function() { bar.textContent = ''; }, 2000);
 }
 
 async function refreshAccounts() {
     try {
-        const res = await fetch(`${API_BASE}/accounts`);
+        var res = await fetch(API_BASE + '/accounts');
+        if (!res.ok) throw new Error('Server returned ' + res.status);
         accountsCache = await res.json();
-        const grid = document.getElementById('accounts-grid');
-        grid.innerHTML = accountsCache.map(renderAccount).join('');
+        document.getElementById('accounts-grid').innerHTML = accountsCache.map(renderAccount).join('');
+        showStatus('Accounts refreshed (' + accountsCache.length + ' loaded)');
     } catch (e) {
         console.error('Failed to load accounts:', e);
+        showStatus('Failed to load accounts: ' + e.message, true);
     }
 }
 
 async function refreshLogs() {
     try {
-        const res = await fetch(`${API_BASE}/call/logs`);
-        const logs = await res.json();
-        const body = document.getElementById('logs-body');
+        var res = await fetch(API_BASE + '/call/logs');
+        if (!res.ok) throw new Error('Server returned ' + res.status);
+        var logs = await res.json();
+        var body = document.getElementById('logs-body');
 
         if (!logs.length) {
             body.innerHTML = '<p class="logs-empty">No call logs yet.</p>';
+            showStatus('Call logs refreshed (0 entries)');
             return;
         }
 
-        body.innerHTML = logs.slice().reverse().map(log => `
-            <div class="log-entry">
-                <span class="log-time">${new Date(log.timestamp).toLocaleString()}</span>
-                &mdash;
-                <span class="log-account">${log.account_number || 'Unknown'}</span>
-                &mdash;
-                ${log.summary || log.outcome || 'No summary'}
-            </div>
-        `).join('');
+        body.innerHTML = logs.slice().reverse().map(function(log) {
+            return '<div class="log-entry">'
+                + '<span class="log-time">' + new Date(log.timestamp).toLocaleString() + '</span>'
+                + ' &mdash; '
+                + '<span class="log-account">' + (log.account_number || 'Unknown') + '</span>'
+                + ' &mdash; '
+                + (log.summary || log.outcome || 'No summary')
+                + '</div>';
+        }).join('');
+        showStatus('Call logs refreshed (' + logs.length + ' entries)');
     } catch (e) {
         console.error('Failed to load logs:', e);
+        showStatus('Failed to load logs: ' + e.message, true);
     }
 }
 
 async function checkCompliance(accountNumber) {
-    const el = document.getElementById(`compliance-${accountNumber}`);
+    var el = document.getElementById('compliance-' + accountNumber);
     el.className = 'compliance-result';
     el.style.display = 'block';
     el.textContent = 'Checking...';
 
     try {
-        const res = await fetch(`${API_BASE}/call/check`, {
+        var res = await fetch(API_BASE + '/call/check', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ account_number: accountNumber }),
         });
-        const data = await res.json();
+        var data = await res.json();
 
-        const resultClass = data.allowed ? 'allowed' : 'blocked';
-        const resultText = data.allowed
-            ? `Allowed — Call attempt #${data.call_attempt_number}`
-            : `Blocked — ${data.reason}`;
+        var resultClass = data.allowed ? 'allowed' : 'blocked';
+        var resultText = data.allowed
+            ? 'Allowed — Call attempt #' + data.call_attempt_number
+            : 'Blocked — ' + data.reason;
 
-        el.className = `compliance-result ${resultClass}`;
+        el.className = 'compliance-result ' + resultClass;
         el.textContent = resultText;
 
-        refreshAccounts().then(() => {
-            const newEl = document.getElementById(`compliance-${accountNumber}`);
+        refreshAccounts().then(function() {
+            var newEl = document.getElementById('compliance-' + accountNumber);
             if (newEl) {
-                newEl.className = `compliance-result ${resultClass}`;
+                newEl.className = 'compliance-result ' + resultClass;
                 newEl.textContent = resultText;
                 newEl.style.display = 'block';
             }
         });
     } catch (e) {
         el.className = 'compliance-result blocked';
-        el.textContent = `Error: ${e.message}`;
+        el.textContent = 'Error: ' + e.message;
     }
 }
 
 async function startCall(accountNumber) {
+    if (!VapiClass) {
+        updateCallStatus(accountNumber, 'Vapi SDK not loaded — please refresh the page', 'ended');
+        return;
+    }
     if (!vapiConfig.publicKey) {
         updateCallStatus(accountNumber, 'Vapi not configured — set VAPI_PUBLIC_KEY and VAPI_ASSISTANT_ID in environment variables', 'ended');
         return;
@@ -490,10 +490,10 @@ async function startCall(accountNumber) {
         return;
     }
 
-    const account = accountsCache.find(a => a.account_number === accountNumber);
+    var account = accountsCache.find(function(a) { return a.account_number === accountNumber; });
     if (!account) return;
 
-    const btn = document.getElementById(`call-btn-${accountNumber}`);
+    var btn = document.getElementById('call-btn-' + accountNumber);
     btn.disabled = true;
     btn.textContent = 'Connecting...';
 
@@ -501,19 +501,19 @@ async function startCall(accountNumber) {
     updateCallStatus(accountNumber, 'Connecting to agent...', '');
 
     try {
-        const vapi = new VapiClass(vapiConfig.publicKey);
+        var vapi = new VapiClass(vapiConfig.publicKey);
 
-        vapi.on('call-start', () => {
+        vapi.on('call-start', function() {
             updateCallStatus(accountNumber, 'Call connected — speaking with agent', 'active');
-            const card = document.getElementById(`card-${accountNumber}`);
+            var card = document.getElementById('card-' + accountNumber);
             if (card) card.classList.add('on-call');
         });
 
-        vapi.on('call-end', () => {
+        vapi.on('call-end', function() {
             cleanupCall(accountNumber);
         });
 
-        vapi.on('error', (e) => {
+        vapi.on('error', function(e) {
             console.error('Vapi error:', e);
             updateCallStatus(accountNumber, 'Call error — please try again', 'ended');
             cleanupCall(accountNumber);
@@ -553,24 +553,24 @@ async function startCall(accountNumber) {
         btn.className = 'btn-end';
         btn.onclick = endCall;
 
-        callCheckInterval = setInterval(() => {
+        callCheckInterval = setInterval(function() {
             if (!vapiInstance || !activeCallAccount) {
                 cleanupCall(accountNumber);
             }
         }, 3000);
     } catch (e) {
         console.error('Failed to start call:', e);
-        updateCallStatus(accountNumber, `Failed to start call: ${e.message}`, 'ended');
+        updateCallStatus(accountNumber, 'Failed to start call: ' + e.message, 'ended');
         btn.textContent = 'Start Call';
         btn.disabled = false;
         btn.className = 'btn-call';
-        btn.onclick = () => startCall(accountNumber);
+        btn.onclick = function() { startCall(accountNumber); };
         activeCallAccount = null;
     }
 }
 
 function endCall() {
-    const acct = activeCallAccount;
+    var acct = activeCallAccount;
     if (vapiInstance) {
         vapiInstance.stop();
     }
@@ -581,7 +581,7 @@ async function resetData() {
     if (!confirm('Reset all account data and call logs to their original state?')) return;
 
     try {
-        const res = await fetch(`${API_BASE}/data/reset`, { method: 'POST' });
+        var res = await fetch(API_BASE + '/data/reset', { method: 'POST' });
         if (res.ok) {
             refreshAccounts();
             refreshLogs();
@@ -591,14 +591,7 @@ async function resetData() {
     }
 }
 
-// Expose functions globally for onclick handlers
-window.refreshAccounts = refreshAccounts;
-window.refreshLogs = refreshLogs;
-window.resetData = resetData;
-window.checkCompliance = checkCompliance;
-window.startCall = startCall;
-window.endCall = endCall;
-
+loadVapiSdk();
 loadConfig();
 refreshAccounts();
 refreshLogs();
