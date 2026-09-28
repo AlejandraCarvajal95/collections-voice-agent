@@ -278,6 +278,31 @@ let vapiInstance = null;
 let vapiConfig = { assistantId: '', publicKey: '' };
 let activeCallAccount = null;
 let accountsCache = [];
+let callCheckInterval = null;
+
+function cleanupCall(accountNumber) {
+    if (!accountNumber) return;
+    updateCallStatus(accountNumber, 'Call ended — waiting for report...', 'ended');
+    const card = document.getElementById(`card-${accountNumber}`);
+    if (card) card.classList.remove('on-call');
+    const btn = document.getElementById(`call-btn-${accountNumber}`);
+    if (btn) {
+        btn.textContent = 'Start Call';
+        btn.disabled = false;
+        btn.className = 'btn-call';
+        btn.onclick = () => startCall(accountNumber);
+    }
+    activeCallAccount = null;
+    vapiInstance = null;
+    if (callCheckInterval) { clearInterval(callCheckInterval); callCheckInterval = null; }
+    setTimeout(() => { refreshAccounts(); refreshLogs(); }, 2000);
+    setTimeout(() => { refreshAccounts(); refreshLogs(); }, 6000);
+    setTimeout(() => {
+        refreshAccounts();
+        refreshLogs();
+        updateCallStatus(accountNumber, 'Call ended — data updated', 'ended');
+    }, 12000);
+}
 
 async function loadConfig() {
     try {
@@ -485,32 +510,13 @@ async function startCall(accountNumber) {
         });
 
         vapi.on('call-end', () => {
-            updateCallStatus(accountNumber, 'Call ended — waiting for report...', 'ended');
-            const card = document.getElementById(`card-${accountNumber}`);
-            if (card) card.classList.remove('on-call');
-            btn.textContent = 'Start Call';
-            btn.disabled = false;
-            btn.className = 'btn-call';
-            btn.onclick = () => startCall(accountNumber);
-            activeCallAccount = null;
-            vapiInstance = null;
-            setTimeout(() => { refreshAccounts(); refreshLogs(); }, 2000);
-            setTimeout(() => { refreshAccounts(); refreshLogs(); }, 6000);
-            setTimeout(() => {
-                refreshAccounts();
-                refreshLogs();
-                updateCallStatus(accountNumber, 'Call ended — data updated', 'ended');
-            }, 12000);
+            cleanupCall(accountNumber);
         });
 
         vapi.on('error', (e) => {
             console.error('Vapi error:', e);
             updateCallStatus(accountNumber, 'Call error — please try again', 'ended');
-            btn.textContent = 'Start Call';
-            btn.disabled = false;
-            btn.className = 'btn-call';
-            btn.onclick = () => startCall(accountNumber);
-            activeCallAccount = null;
+            cleanupCall(accountNumber);
         });
 
         await vapi.start(vapiConfig.assistantId, {
@@ -546,6 +552,12 @@ async function startCall(accountNumber) {
         btn.disabled = false;
         btn.className = 'btn-end';
         btn.onclick = endCall;
+
+        callCheckInterval = setInterval(() => {
+            if (!vapiInstance || !activeCallAccount) {
+                cleanupCall(accountNumber);
+            }
+        }, 3000);
     } catch (e) {
         console.error('Failed to start call:', e);
         updateCallStatus(accountNumber, `Failed to start call: ${e.message}`, 'ended');
@@ -558,10 +570,11 @@ async function startCall(accountNumber) {
 }
 
 function endCall() {
+    const acct = activeCallAccount;
     if (vapiInstance) {
         vapiInstance.stop();
-        vapiInstance = null;
     }
+    if (acct) cleanupCall(acct);
 }
 
 async function resetData() {
