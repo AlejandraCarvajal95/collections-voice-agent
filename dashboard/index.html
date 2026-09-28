@@ -564,8 +564,10 @@ async function startCall(accountNumber) {
         });
 
         var vapi = new VapiClass(vapiConfig.publicKey);
+        var callConnected = false;
 
         vapi.on('call-start', function() {
+            callConnected = true;
             updateCallStatus(accountNumber, 'Call connected — speaking with agent', 'active');
             var card = document.getElementById('card-' + accountNumber);
             if (card) card.classList.add('on-call');
@@ -576,9 +578,9 @@ async function startCall(accountNumber) {
         });
 
         vapi.on('error', function(e) {
-            console.error('Vapi error:', e);
-            var msg = (e && (e.message || e.errorMsg || JSON.stringify(e))) || '';
-            var isTransfer = msg.toLowerCase().includes('eject') || msg.toLowerCase().includes('transfer');
+            console.error('Vapi error:', e, JSON.stringify(e));
+            // If the call already connected, mid-call errors are almost always transfer ejections
+            var isTransfer = callConnected;
             updateCallStatus(accountNumber, isTransfer ? 'Transferred to live agent' : 'Call error — please try again', 'ended');
             cleanupCall(accountNumber);
         });
