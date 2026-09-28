@@ -267,7 +267,11 @@
     </div>
 </div>
 
-<script>
+<script type="module">
+import VapiModule from 'https://cdn.jsdelivr.net/npm/@vapi-ai/web@2/+esm';
+const VapiClass = VapiModule.default || VapiModule;
+console.log('Vapi SDK loaded:', typeof VapiClass);
+
 const API_BASE = window.location.origin;
 
 let vapiInstance = null;
@@ -289,16 +293,7 @@ async function loadConfig() {
 
         vapiConfig.publicKey = config.vapi_public_key;
         vapiConfig.assistantId = config.vapi_assistant_id;
-
-        // Load the Vapi Web SDK
-        const script = document.createElement('script');
-        script.type = 'module';
-        script.textContent = `
-            import Vapi from 'https://cdn.jsdelivr.net/npm/@vapi-ai/web@2/+esm';
-            window.Vapi = Vapi;
-            console.log('Vapi SDK loaded successfully');
-        `;
-        document.head.appendChild(script);
+        console.log('Vapi config loaded');
 
     } catch (e) {
         console.warn('Could not load config:', e);
@@ -481,7 +476,7 @@ async function startCall(accountNumber) {
     updateCallStatus(accountNumber, 'Connecting to agent...', '');
 
     try {
-        const vapi = new window.Vapi(vapiConfig.publicKey);
+        const vapi = new VapiClass(vapiConfig.publicKey);
 
         vapi.on('call-start', () => {
             updateCallStatus(accountNumber, 'Call connected — speaking with agent', 'active');
@@ -575,6 +570,14 @@ async function resetData() {
         alert('Reset failed: ' + e.message);
     }
 }
+
+// Expose functions globally for onclick handlers
+window.refreshAccounts = refreshAccounts;
+window.refreshLogs = refreshLogs;
+window.resetData = resetData;
+window.checkCompliance = checkCompliance;
+window.startCall = startCall;
+window.endCall = endCall;
 
 loadConfig();
 refreshAccounts();
