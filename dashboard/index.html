@@ -429,7 +429,7 @@ async function refreshLogs() {
                 + ' &mdash; '
                 + '<span class="log-account">' + (log.account_number || 'Unknown') + '</span>'
                 + ' &mdash; '
-                + (log.summary || log.outcome || 'No summary')
+                + (log.summary || ('Ended: ' + (log.ended_reason || 'unknown') + (log.duration_seconds ? ' — ' + log.duration_seconds + 's' : '')))
                 + '</div>';
         }).join('');
         showStatus('Call logs refreshed (' + logs.length + ' entries)');

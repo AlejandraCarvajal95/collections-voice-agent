@@ -14,7 +14,8 @@ def handle_end_of_call(message: dict) -> dict:
     ended_at = call.get("endedAt", "")
     ended_reason = message.get("endedReason", "unknown")
     transcript = message.get("transcript", "")
-    summary = message.get("summary", "")
+    analysis = message.get("analysis", {})
+    summary = message.get("summary", "") or analysis.get("summary", "")
 
     overrides = call.get("assistantOverrides", {})
     variables = overrides.get("variableValues", {})
