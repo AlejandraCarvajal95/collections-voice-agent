@@ -277,7 +277,9 @@ let accountsCache = [];
 
 async function loadConfig() {
     try {
-        const res = await fetch(`${API_BASE}/config`);
+        const res = await fetch(`${API_BASE}/config`, {
+            headers: { 'X-Dashboard-Token': 'collections-demo-2026' },
+        });
         const config = await res.json();
 
         if (!config.vapi_public_key) {

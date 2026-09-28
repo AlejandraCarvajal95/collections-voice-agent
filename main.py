@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -86,7 +86,10 @@ async def call_logs():
 
 
 @app.get("/config")
-async def get_config():
+async def get_config(x_dashboard_token: str = Header(default="")):
+    expected = os.environ.get("DASHBOARD_TOKEN", "")
+    if not expected or x_dashboard_token != expected:
+        raise HTTPException(status_code=403, detail="Forbidden")
     return {
         "vapi_public_key": os.environ.get("VAPI_PUBLIC_KEY", ""),
         "vapi_assistant_id": os.environ.get("VAPI_ASSISTANT_ID", ""),
