@@ -3,6 +3,7 @@ from datetime import datetime
 
 from fastapi import FastAPI, Request
 
+from call_handler import handle_end_of_call, get_call_logs
 from compliance import check_compliance
 from data import load_accounts
 from tools import TOOL_HANDLERS
@@ -39,6 +40,9 @@ async def vapi_webhook(request: Request):
 
         return {"results": results}
 
+    if message_type == "end-of-call-report":
+        return handle_end_of_call(message)
+
     return {"ok": True}
 
 
@@ -52,6 +56,11 @@ async def call_check(request: Request):
 @app.get("/accounts")
 async def get_accounts():
     return load_accounts()
+
+
+@app.get("/call/logs")
+async def call_logs():
+    return get_call_logs()
 
 
 @app.get("/health")
