@@ -1,26 +1,12 @@
 {
-  "type": "function",
-  "function": {
-    "name": "flag_attorney",
-    "description": "Use this tool when the consumer states they have an attorney or are represented by legal counsel. Under FDCPA §1692c(a)(2), once a consumer is known to be represented, all communication must go through their attorney. After calling this tool, do not continue collection discussion — end the call politely.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "account_number": {
-          "type": "string",
-          "description": "The consumer's account number (e.g., 'CH7723849')"
-        }
-      },
-      "required": ["account_number"]
+  "type": "object",
+  "properties": {
+    "account_number": {
+      "description": "The consumer's account number (e.g., 'CH7723849')",
+      "type": "string"
     }
   },
-  "messages": [
-    {
-      "type": "request-start",
-      "content": "I'm noting that on your account right now."
-    }
-  ],
-  "server": {
-    "url": "https://collections-voice-agent.onrender.com/vapi/webhook"
-  }
+  "required": [
+    "account_number"
+  ]
 }

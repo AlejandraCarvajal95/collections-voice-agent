@@ -1,26 +1,12 @@
 {
-  "type": "function",
-  "function": {
-    "name": "flag_do_not_call",
-    "description": "Use this tool when the consumer explicitly requests to stop receiving calls. This is a cease-communication request under FDCPA §1692c(c). You MUST honor this request immediately — do not try to talk them out of it. After calling this tool, end the call politely.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "account_number": {
-          "type": "string",
-          "description": "The consumer's account number (e.g., 'CH7723849')"
-        }
-      },
-      "required": ["account_number"]
+  "type": "object",
+  "properties": {
+    "account_number": {
+      "description": "The consumer's account number (e.g., 'CH7723849')",
+      "type": "string"
     }
   },
-  "messages": [
-    {
-      "type": "request-start",
-      "content": "I'm noting that on your account right now."
-    }
-  ],
-  "server": {
-    "url": "https://collections-voice-agent.onrender.com/vapi/webhook"
-  }
+  "required": [
+    "account_number"
+  ]
 }
