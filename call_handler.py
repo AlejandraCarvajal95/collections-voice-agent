@@ -4,7 +4,7 @@ from pathlib import Path
 
 from data import load_accounts, save_accounts, find_account
 
-CALL_LOGS_FILE = Path(__file__).parent / "call_logs.json"
+CALL_LOGS_FILE = Path(__file__).parent / "data" / "call_logs.json"
 
 
 def handle_end_of_call(message: dict) -> dict:

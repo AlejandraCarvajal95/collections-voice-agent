@@ -2,8 +2,8 @@ import json
 import copy
 from pathlib import Path
 
-ACCOUNTS_FILE = Path(__file__).parent / "accounts.json"
-CALL_LOGS_FILE = Path(__file__).parent / "call_logs.json"
+ACCOUNTS_FILE = Path(__file__).parent / "data" / "accounts.json"
+CALL_LOGS_FILE = Path(__file__).parent / "data" / "call_logs.json"
 
 _original_accounts: list[dict] | None = None
 

@@ -1,19 +1,9 @@
-# Assignment materials and personal notes
+# Personal notes
 info/
 
 # Claude Code configuration and session data
 .claude/
 CLAUDE.md
-
-# Internal project management
-pipeline.md
-
-# Docs to add later (before final submission)
-compliance-and-flow.md
-platform-decision.md
-
-# Vapi reference material (not original work)
-vapi-prompt-reference.md
 
 # Python
 __pycache__/
