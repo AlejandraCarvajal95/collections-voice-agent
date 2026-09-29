@@ -39,6 +39,13 @@ Vapi was selected after comparing these three platforms. See [architecture.md](a
 
 ---
 
+## Industry context
+
+- [Domu — How to Keep Automated Debt Collection Compliant With FDCPA](https://domu.ai/blog/how-to-keep-automated-debt-collection-compliant-with-fdcpa)
+- [Domu — The Seven-Step Architecture for Automating Debt Collection](https://domu.ai/blog/the-seven-step-architecture-for-automating-debt-collection)
+
+---
+
 ## Voice AI & prompt engineering
 
 - [Deepgram — Nova-3 model overview](https://deepgram.com/learn/nova-3-model)
