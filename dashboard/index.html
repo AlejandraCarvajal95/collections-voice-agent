@@ -294,6 +294,7 @@
 <script>
 const API_BASE = window.location.origin;
 
+// Global state: Vapi SDK class, active call instance, config, and data caches.
 let VapiClass = null;
 let vapiInstance = null;
 let vapiConfig = { assistantId: '', publicKey: '', transferNumber: '' };
@@ -302,6 +303,7 @@ let accountsCache = [];
 let callCheckInterval = null;
 let logsCache = [];
 
+// Reset card UI after a call ends. statusMsg overrides the default status text; if omitted, polls for the end-of-call report.
 function cleanupCall(accountNumber, statusMsg) {
     if (!accountNumber) return;
     var custom = !!statusMsg;
@@ -329,6 +331,7 @@ function cleanupCall(accountNumber, statusMsg) {
     }
 }
 
+// Dynamically import the Vapi Web SDK and assign the constructor to VapiClass.
 async function loadVapiSdk() {
     try {
         var mod = await import('https://cdn.jsdelivr.net/npm/@vapi-ai/web@2/+esm');
@@ -346,6 +349,7 @@ async function loadVapiSdk() {
     }
 }
 
+// Fetch Vapi public key and assistant ID from the backend (token-protected endpoint).
 async function loadConfig() {
     try {
         var res = await fetch(API_BASE + '/config', {
@@ -367,6 +371,7 @@ async function loadConfig() {
     }
 }
 
+// Update the call status banner on a card. state: '' | 'active' | 'ended'. dismissible adds a close button.
 function updateCallStatus(accountNumber, text, state, dismissible) {
     var el = document.getElementById('call-status-' + accountNumber);
     if (!el) return;
@@ -382,6 +387,7 @@ function formatMoney(val) {
     return '$' + Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+// Build the HTML string for an account card, including fields, flags, and action buttons.
 function renderAccount(account) {
     var hasActiveFlags = account.cease_and_desist || account.do_not_call || account.has_attorney || account.active_dispute;
     var ptpInfo = account.promise_to_pay_exists
@@ -436,6 +442,7 @@ function showStatus(msg, isError) {
     if (!isError) setTimeout(function() { bar.textContent = ''; }, 2000);
 }
 
+// Fetch account data from the backend and re-render all cards.
 async function refreshAccounts() {
     try {
         var res = await fetch(API_BASE + '/accounts');
@@ -449,6 +456,7 @@ async function refreshAccounts() {
     }
 }
 
+// Fetch call logs from the backend and render them in the logs panel, newest first.
 async function refreshLogs() {
     try {
         var res = await fetch(API_BASE + '/call/logs');
@@ -488,6 +496,7 @@ async function refreshLogs() {
     }
 }
 
+// Run a compliance check for the given account and show the result inline on the card.
 async function checkCompliance(accountNumber) {
     var el = document.getElementById('compliance-' + accountNumber);
     el.className = 'compliance-result';
@@ -524,6 +533,7 @@ async function checkCompliance(accountNumber) {
     }
 }
 
+// Run compliance check, increment call counter, then start a Vapi call with account variables injected.
 async function startCall(accountNumber) {
     if (!VapiClass) {
         updateCallStatus(accountNumber, 'Vapi SDK not loaded — please refresh the page', 'ended');
@@ -670,6 +680,7 @@ async function resetData() {
     }
 }
 
+// Convert Vapi's ended_reason codes into readable strings for the call log UI.
 function friendlyEndedReason(reason) {
     if (!reason) return 'Unknown';
     if (reason.includes('transfer')) return 'Transferred to live agent';
@@ -680,6 +691,7 @@ function friendlyEndedReason(reason) {
     return reason;
 }
 
+// Toggle the transcript box visibility and update the button label.
 function toggleTranscript(id, btn) {
     var el = document.getElementById(id);
     if (!el) return;
@@ -687,6 +699,7 @@ function toggleTranscript(id, btn) {
     btn.textContent = showing ? 'Hide Transcript' : 'Show Transcript';
 }
 
+// Download the transcript for logsCache[index] as a plain text file with a metadata header.
 function downloadTranscript(index) {
     var log = logsCache[index];
     if (!log || !log.transcript) return;

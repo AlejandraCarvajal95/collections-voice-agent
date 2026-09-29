@@ -1,3 +1,4 @@
+# Maps Vapi function names to their handlers. The webhook routes calls here by function name.
 from tools.record_payment import handle_record_payment
 from tools.set_promise_to_pay import handle_set_promise_to_pay
 from tools.flag_do_not_call import handle_flag_do_not_call

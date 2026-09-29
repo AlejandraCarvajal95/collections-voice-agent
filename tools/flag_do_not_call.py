@@ -4,6 +4,7 @@ from data import load_accounts, save_accounts, find_account
 
 
 def handle_flag_do_not_call(arguments: dict) -> dict:
+    """Set do_not_call = True on the account (FDCPA §1692c(c) cease-communication request)."""
     account_number = arguments.get("account_number", "")
 
     accounts = load_accounts()

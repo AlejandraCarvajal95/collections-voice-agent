@@ -4,6 +4,7 @@ from data import load_accounts, save_accounts, find_account
 
 
 def handle_set_promise_to_pay(arguments: dict) -> dict:
+    """Log a promise-to-pay commitment. Validates that the promised date is in the future."""
     account_number = arguments.get("account_number", "")
     amount = arguments.get("amount", 0)
     pay_date = arguments.get("date", "")

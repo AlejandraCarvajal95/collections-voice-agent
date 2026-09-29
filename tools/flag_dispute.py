@@ -4,6 +4,7 @@ from data import load_accounts, save_accounts, find_account
 
 
 def handle_flag_dispute(arguments: dict) -> dict:
+    """Set active_dispute = True on the account (FDCPA §1692g debt validation request)."""
     account_number = arguments.get("account_number", "")
 
     accounts = load_accounts()

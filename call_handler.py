@@ -8,6 +8,7 @@ CALL_LOGS_FILE = Path(__file__).parent / "data" / "call_logs.json"
 
 
 def handle_end_of_call(message: dict) -> dict:
+    """Process Vapi's end-of-call-report: update last_contact_date, compute duration, and append a log entry."""
     call = message.get("call", {})
     call_id = call.get("id", "unknown")
     started_at = call.get("startedAt", "")
@@ -57,5 +58,6 @@ def handle_end_of_call(message: dict) -> dict:
 
 
 def get_call_logs() -> list[dict]:
+    """Return all call log entries from disk, or an empty list if the file doesn't exist yet."""
     logs = json.loads(CALL_LOGS_FILE.read_text()) if CALL_LOGS_FILE.exists() else []
     return logs

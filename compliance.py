@@ -61,6 +61,7 @@ CALL_ATTEMPTS_LIMIT = 7
 
 
 def check_compliance(account_number: str) -> dict:
+    """Run all pre-call compliance checks. Returns {allowed, reason} or {allowed, account_number, call_attempt_number}."""
     accounts = load_accounts()
     account = find_account(accounts, account_number)
 
@@ -117,6 +118,7 @@ def check_compliance(account_number: str) -> dict:
 
 
 def increment_call_attempt(account_number: str) -> dict:
+    """Increment call_attempts_last_7_days for an account. Called after a call is confirmed to start."""
     accounts = load_accounts()
     account = find_account(accounts, account_number)
     if not account:

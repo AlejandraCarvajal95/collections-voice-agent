@@ -37,6 +37,7 @@ def on_startup():
 
 @app.post("/vapi/webhook")
 async def vapi_webhook(request: Request):
+    # Routes tool-calls by function name via TOOL_HANDLERS; also handles end-of-call-report.
     payload = await request.json()
     message = payload.get("message", {})
     message_type = message.get("type", "")
@@ -92,6 +93,7 @@ async def call_logs():
 
 @app.get("/config")
 async def get_config(x_dashboard_token: str = Header(default="")):
+    # Returns Vapi keys to the dashboard. Requires a static token header to prevent public exposure.
     expected = os.environ.get("DASHBOARD_TOKEN", "")
     if not expected or x_dashboard_token != expected:
         raise HTTPException(status_code=403, detail="Forbidden")

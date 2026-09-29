@@ -4,6 +4,7 @@ from data import load_accounts, save_accounts, find_account
 
 
 def handle_record_payment(arguments: dict) -> dict:
+    """Record a payment: reduce past_due_amount and return a confirmation number."""
     account_number = arguments.get("account_number", "")
     amount = arguments.get("amount", 0)
     method = arguments.get("method", "phone")
