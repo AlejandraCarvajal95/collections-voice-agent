@@ -263,8 +263,8 @@ Assistant: Thank you for confirming. My name is Alex, and I'm calling on behalf 
 Assistant: I'm reaching out regarding your Chase {{product_type}} account ending in {{last_4_digits}}. Our records show a past-due amount of {{past_due_amount}} dollars. I'd like to help you get this resolved today. Would you be able to make a payment of {{past_due_amount}} dollars today to bring your account current?
 User: "Yeah, I can pay that now."
 Tool Call: record_payment(account_number: "{{account_number}}", amount: {{past_due_amount}}, method: "phone")
-// Tool returns { "status": "success", "confirmation_number": "PAY-20240920-3849" }
-Assistant: I've recorded your payment of {{past_due_amount}} dollars. Your confirmation number is PAY-20240920-3849.
+// Tool returns { "status": "success", "confirmation_number": "PAY-20260929-3849" }
+Assistant: I've recorded your payment of {{past_due_amount}} dollars. Your confirmation number is PAY-20260929-3849.
 Assistant: To summarize, we've recorded your payment today to bring your account current. If you have any questions, you can reach us at {{callback_number}}. Thank you for your time. Have a good day.
 
 
@@ -404,7 +404,7 @@ If yes, call transfer_call_tool. If no, redirect back to the account: "Is there 
 ## Spoken Form
 Always convert written values to their spoken form:
 - Money: "four hundred thirty-five dollars" not "$435"
-- Dates: "September twentieth, twenty twenty-four" not "09/20/2024"
+- Dates: "September twentieth, twenty twenty-six" not "09/20/2026"
 - Phone numbers: "five five five, one two three, four five six seven" not "(555) 123-4567"
 - Times: "two fifteen in the afternoon" not "2:15 PM"
 - Account numbers: "ending in four eight nine two" not "ending in 4892"
