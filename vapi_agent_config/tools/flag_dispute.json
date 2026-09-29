@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "properties": {
+    "account_number": {
+      "description": "The consumer's account number (e.g., 'CH7723849')",
+      "type": "string"
+    }
+  },
+  "required": [
+    "account_number"
+  ]
+}

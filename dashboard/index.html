@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collections Voice Agent — Demo Dashboard</title>
+    <style>
+        :root {
+            --bg: #f5f6fa;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --border: #e2e8f0;
+            --badge-green: #dcfce7;
+            --badge-red: #fee2e2;
+            --badge-yellow: #fef9c3;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 24px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        header h1 { font-size: 1.5rem; font-weight: 700; }
+        header p { color: var(--text-light); font-size: 0.875rem; margin-top: 4px; }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .controls button {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--card-bg);
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: var(--text);
+            transition: all 0.15s;
+        }
+        .controls button:hover { border-color: var(--primary); color: var(--primary); }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 20px;
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+        }
+        .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .card.on-call { border-color: var(--success); box-shadow: 0 0 0 2px var(--badge-green); }
+
+        .card-header {
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+        .card-header h2 { font-size: 1rem; font-weight: 600; }
+        .card-header .account-num { font-size: 0.75rem; color: var(--text-light); }
+
+        .badge {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-ok { background: var(--badge-green); color: var(--success); }
+        .badge-blocked { background: var(--badge-red); color: var(--danger); }
+        .badge-warning { background: var(--badge-yellow); color: var(--warning); }
+
+        .card-body { padding: 16px 20px; }
+
+        .field-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 16px;
+        }
+        .field label {
+            display: block;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-light);
+            margin-bottom: 2px;
+        }
+        .field span {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .flags {
+            margin-top: 12px;
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .flag {
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: var(--badge-red);
+            color: var(--danger);
+        }
+        .flag.inactive {
+            background: var(--badge-green);
+            color: var(--success);
+        }
+
+        .card-footer {
+            padding: 12px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+        }
+        .card-footer button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-check {
+            background: var(--card-bg);
+            border: 1px solid var(--primary) !important;
+            color: var(--primary);
+        }
+        .btn-check:hover { background: #eff6ff; }
+
+        .btn-call {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-call:hover { background: var(--primary-hover); }
+        .btn-call:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .btn-end {
+            background: var(--danger);
+            color: white;
+        }
+        .btn-end:hover { background: #b91c1c; }
+
+        .compliance-result {
+            margin-top: 10px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            display: none;
+        }
+        .compliance-result.allowed {
+            background: var(--badge-green);
+            color: #166534;
+            display: block;
+        }
+        .compliance-result.blocked {
+            background: var(--badge-red);
+            color: #991b1b;
+            display: block;
+        }
+
+        .call-status {
+            margin-top: 8px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            background: #eff6ff;
+            color: var(--primary);
+            display: none;
+            text-align: center;
+        }
+        .call-status.visible { display: block; }
+        .call-status.active { background: var(--badge-green); color: #166534; }
+        .call-status.ended { background: var(--bg); color: var(--text-light); }
+
+        .logs-panel {
+            max-width: 1440px;
+            margin: 32px auto 0;
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        .logs-panel h3 {
+            padding: 16px 20px;
+            font-size: 0.95rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .logs-body {
+            padding: 16px 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.8rem;
+        }
+        .log-entry:last-child { border-bottom: none; }
+        .log-entry .log-time { color: var(--text-light); }
+        .log-entry .log-account { font-weight: 600; }
+        .logs-empty {
+            color: var(--text-light);
+            font-size: 0.8rem;
+            font-style: italic;
+        }
+        .transcript-toggle {
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-size: 0.75rem;
+            cursor: pointer;
+            padding: 2px 0;
+            margin-left: 8px;
+        }
+        .transcript-toggle:hover { text-decoration: underline; }
+        .transcript-box {
+            display: none;
+            margin-top: 8px;
+            padding: 10px 14px;
+            background: var(--bg);
+            border-radius: 8px;
+            font-size: 0.75rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .transcript-box.visible { display: block; }
+
+        @media (max-width: 768px) {
+            body { padding: 12px; }
+            .grid { grid-template-columns: 1fr; }
+            .field-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Collections Voice Agent</h1>
+    <p>Pre-Charge-Off Demo Dashboard</p>
+</header>
+
+<div class="controls">
+    <button id="btn-refresh-accounts" onclick="refreshAccounts()">Refresh Accounts</button>
+    <button id="btn-refresh-logs" onclick="refreshLogs()">Refresh Call Logs</button>
+    <button onclick="resetData()">Reset Demo Data</button>
+</div>
+<div id="status-bar" style="text-align:center;font-size:0.8rem;color:var(--text-light);min-height:1.2em;margin-bottom:8px;"></div>
+
+<div class="grid" id="accounts-grid"></div>
+
+<div class="logs-panel">
+    <h3>Call Logs</h3>
+    <div class="logs-body" id="logs-body">
+        <p class="logs-empty">No call logs yet.</p>
+    </div>
+</div>
+
+<script>
+const API_BASE = window.location.origin;
+
+// Global state: Vapi SDK class, active call instance, config, and data caches.
+let VapiClass = null;
+let vapiInstance = null;
+let vapiConfig = { assistantId: '', publicKey: '', transferNumber: '' };
+let activeCallAccount = null;
+let accountsCache = [];
+let callCheckInterval = null;
+let logsCache = [];
+
+// Reset card UI after a call ends. statusMsg overrides the default status text; if omitted, polls for the end-of-call report.
+function cleanupCall(accountNumber, statusMsg) {
+    if (!accountNumber) return;
+    var custom = !!statusMsg;
+    updateCallStatus(accountNumber, statusMsg || 'Call ended — waiting for report...', 'ended', custom);
+    const card = document.getElementById('card-' + accountNumber);
+    if (card) card.classList.remove('on-call');
+    const btn = document.getElementById('call-btn-' + accountNumber);
+    if (btn) {
+        btn.textContent = 'Start Call';
+        btn.disabled = false;
+        btn.className = 'btn-call';
+        btn.onclick = function() { startCall(accountNumber); };
+    }
+    activeCallAccount = null;
+    vapiInstance = null;
+    if (callCheckInterval) { clearInterval(callCheckInterval); callCheckInterval = null; }
+    setTimeout(function() { refreshAccounts(); refreshLogs(); }, 2000);
+    setTimeout(function() { refreshAccounts(); refreshLogs(); }, 6000);
+    if (!custom) {
+        setTimeout(function() {
+            refreshAccounts();
+            refreshLogs();
+            updateCallStatus(accountNumber, 'Call ended — data updated', 'ended');
+        }, 12000);
+    }
+}
+
+// Dynamically import the Vapi Web SDK and assign the constructor to VapiClass.
+async function loadVapiSdk() {
+    try {
+        var mod = await import('https://cdn.jsdelivr.net/npm/@vapi-ai/web@2/+esm');
+        var candidate = mod.default || mod;
+        if (typeof candidate === 'function') {
+            VapiClass = candidate;
+        } else if (candidate && typeof candidate.default === 'function') {
+            VapiClass = candidate.default;
+        } else if (candidate && typeof candidate.Vapi === 'function') {
+            VapiClass = candidate.Vapi;
+        }
+        console.log('Vapi SDK loaded:', typeof VapiClass);
+    } catch (e) {
+        console.warn('Vapi SDK failed to load — calls disabled:', e);
+    }
+}
+
+// Fetch Vapi public key and assistant ID from the backend (token-protected endpoint).
+async function loadConfig() {
+    try {
+        var res = await fetch(API_BASE + '/config', {
+            headers: { 'X-Dashboard-Token': 'collections-demo-2026' },
+        });
+        var config = await res.json();
+
+        if (!config.vapi_public_key) {
+            console.warn('Vapi public key not configured');
+            return;
+        }
+
+        vapiConfig.publicKey = config.vapi_public_key;
+        vapiConfig.assistantId = config.vapi_assistant_id;
+        vapiConfig.transferNumber = config.transfer_number || '';
+        console.log('Vapi config loaded');
+    } catch (e) {
+        console.warn('Could not load config:', e);
+    }
+}
+
+// Update the call status banner on a card. state: '' | 'active' | 'ended'. dismissible adds a close button.
+function updateCallStatus(accountNumber, text, state, dismissible) {
+    var el = document.getElementById('call-status-' + accountNumber);
+    if (!el) return;
+    el.className = 'call-status visible ' + (state || '');
+    if (dismissible) {
+        el.innerHTML = text + ' <span onclick="this.parentElement.className=\'call-status\'" style="cursor:pointer;margin-left:8px;opacity:0.6;font-weight:bold;">&times;</span>';
+    } else {
+        el.textContent = text;
+    }
+}
+
+function formatMoney(val) {
+    return '$' + Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Build the HTML string for an account card, including fields, flags, and action buttons.
+function renderAccount(account) {
+    var hasActiveFlags = account.cease_and_desist || account.do_not_call || account.has_attorney || account.active_dispute;
+    var ptpInfo = account.promise_to_pay_exists
+        ? '<div class="field"><label>Promise to Pay</label><span>' + account.promise_to_pay_date + ' — ' + formatMoney(account.promise_to_pay_amount) + '</span></div>'
+        : '';
+
+    var isOnCall = activeCallAccount === account.account_number;
+    var flags = ['cease_and_desist', 'do_not_call', 'has_attorney', 'active_dispute'];
+    var flagsHtml = flags.map(function(f) {
+        var label = f.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+        return account[f]
+            ? '<span class="flag">' + label + '</span>'
+            : '<span class="flag inactive">' + label + ': No</span>';
+    }).join('');
+
+    var badgeHtml = hasActiveFlags
+        ? '<span class="badge badge-blocked">Blocked</span>'
+        : '<span class="badge badge-ok">' + account.days_past_due + ' DPD</span>';
+
+    var callBtnHtml = isOnCall
+        ? '<button class="btn-end" id="call-btn-' + account.account_number + '" onclick="endCall()">End Call</button>'
+        : '<button class="btn-call" id="call-btn-' + account.account_number + '" onclick="startCall(\'' + account.account_number + '\')">Start Call</button>';
+
+    return '<div class="card ' + (isOnCall ? 'on-call' : '') + '" id="card-' + account.account_number + '">'
+        + '<div class="card-header"><div>'
+        + '<h2>' + account.consumer_first_name + ' ' + account.consumer_last_name + '</h2>'
+        + '<span class="account-num">' + account.account_number + ' &middot; ' + account.product_type + '</span>'
+        + '</div>' + badgeHtml + '</div>'
+        + '<div class="card-body"><div class="field-grid">'
+        + '<div class="field"><label>Past Due</label><span style="color:var(--danger)">' + formatMoney(account.past_due_amount) + '</span></div>'
+        + '<div class="field"><label>Min Payment</label><span>' + formatMoney(account.minimum_payment) + '</span></div>'
+        + '<div class="field"><label>Total Balance</label><span>' + formatMoney(account.total_balance) + '</span></div>'
+        + '<div class="field"><label>State</label><span>' + account.consumer_state + '</span></div>'
+        + '<div class="field"><label>Call Attempts (7d)</label><span>' + account.call_attempts_last_7_days + ' / 7</span></div>'
+        + '<div class="field"><label>Last Contact</label><span>' + (account.last_contact_date || 'Never') + '</span></div>'
+        + ptpInfo
+        + '</div>'
+        + '<div class="flags">' + flagsHtml + '</div>'
+        + '<div class="compliance-result" id="compliance-' + account.account_number + '"></div>'
+        + '<div class="call-status" id="call-status-' + account.account_number + '"></div>'
+        + '</div>'
+        + '<div class="card-footer">'
+        + '<button class="btn-check" onclick="checkCompliance(\'' + account.account_number + '\')">Check Compliance</button>'
+        + callBtnHtml
+        + '</div></div>';
+}
+
+function showStatus(msg, isError) {
+    var bar = document.getElementById('status-bar');
+    bar.textContent = msg;
+    bar.style.color = isError ? 'var(--danger)' : 'var(--success)';
+    if (!isError) setTimeout(function() { bar.textContent = ''; }, 2000);
+}
+
+// Fetch account data from the backend and re-render all cards.
+async function refreshAccounts() {
+    try {
+        var res = await fetch(API_BASE + '/accounts');
+        if (!res.ok) throw new Error('Server returned ' + res.status);
+        accountsCache = await res.json();
+        document.getElementById('accounts-grid').innerHTML = accountsCache.map(renderAccount).join('');
+        showStatus('Accounts refreshed (' + accountsCache.length + ' loaded)');
+    } catch (e) {
+        console.error('Failed to load accounts:', e);
+        showStatus('Failed to load accounts: ' + e.message, true);
+    }
+}
+
+// Fetch call logs from the backend and render them in the logs panel, newest first.
+async function refreshLogs() {
+    try {
+        var res = await fetch(API_BASE + '/call/logs');
+        if (!res.ok) throw new Error('Server returned ' + res.status);
+        var logs = await res.json();
+        var body = document.getElementById('logs-body');
+
+        if (!logs.length) {
+            body.innerHTML = '<p class="logs-empty">No call logs yet.</p>';
+            showStatus('Call logs refreshed (0 entries)');
+            return;
+        }
+
+        logsCache = logs.slice().reverse();
+        body.innerHTML = logsCache.map(function(log, i) {
+            var summaryText = log.summary || ('Ended: ' + friendlyEndedReason(log.ended_reason) + (log.duration_seconds ? ' — ' + log.duration_seconds + 's' : ''));
+            var transcriptHtml = '';
+            if (log.transcript) {
+                var safeTranscript = String(log.transcript).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                transcriptHtml = '<button class="transcript-toggle" onclick="toggleTranscript(\'transcript-' + i + '\', this)">Show Transcript</button>'
+                    + '<button class="transcript-toggle" onclick="downloadTranscript(' + i + ')">Download</button>'
+                    + '<div class="transcript-box" id="transcript-' + i + '">' + safeTranscript + '</div>';
+            }
+            return '<div class="log-entry">'
+                + '<span class="log-time">' + new Date(log.timestamp).toLocaleString() + '</span>'
+                + ' &mdash; '
+                + '<span class="log-account">' + (log.account_number || 'Unknown') + '</span>'
+                + ' &mdash; '
+                + summaryText
+                + transcriptHtml
+                + '</div>';
+        }).join('');
+        showStatus('Call logs refreshed (' + logs.length + ' entries)');
+    } catch (e) {
+        console.error('Failed to load logs:', e);
+        showStatus('Failed to load logs: ' + e.message, true);
+    }
+}
+
+// Run a compliance check for the given account and show the result inline on the card.
+async function checkCompliance(accountNumber) {
+    var el = document.getElementById('compliance-' + accountNumber);
+    el.className = 'compliance-result';
+    el.style.display = 'block';
+    el.textContent = 'Checking...';
+
+    try {
+        var res = await fetch(API_BASE + '/call/check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ account_number: accountNumber }),
+        });
+        var data = await res.json();
+
+        var resultClass = data.allowed ? 'allowed' : 'blocked';
+        var resultText = data.allowed
+            ? 'Allowed — Call attempt #' + data.call_attempt_number
+            : 'Blocked — ' + data.reason;
+
+        el.className = 'compliance-result ' + resultClass;
+        el.textContent = resultText;
+
+        refreshAccounts().then(function() {
+            var newEl = document.getElementById('compliance-' + accountNumber);
+            if (newEl) {
+                newEl.className = 'compliance-result ' + resultClass;
+                newEl.textContent = resultText;
+                newEl.style.display = 'block';
+            }
+        });
+    } catch (e) {
+        el.className = 'compliance-result blocked';
+        el.textContent = 'Error: ' + e.message;
+    }
+}
+
+// Run compliance check, increment call counter, then start a Vapi call with account variables injected.
+async function startCall(accountNumber) {
+    if (!VapiClass) {
+        updateCallStatus(accountNumber, 'Vapi SDK not loaded — please refresh the page', 'ended');
+        return;
+    }
+    if (!vapiConfig.publicKey) {
+        updateCallStatus(accountNumber, 'Vapi not configured — set VAPI_PUBLIC_KEY and VAPI_ASSISTANT_ID in environment variables', 'ended');
+        return;
+    }
+
+    if (activeCallAccount) {
+        alert('A call is already in progress. End the current call first.');
+        return;
+    }
+
+    var account = accountsCache.find(function(a) { return a.account_number === accountNumber; });
+    if (!account) return;
+
+    var btn = document.getElementById('call-btn-' + accountNumber);
+    btn.disabled = true;
+    btn.textContent = 'Checking...';
+
+    try {
+        var compRes = await fetch(API_BASE + '/call/check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ account_number: accountNumber }),
+        });
+        var compData = await compRes.json();
+        if (!compData.allowed) {
+            updateCallStatus(accountNumber, 'Blocked — ' + compData.reason, 'ended');
+            btn.textContent = 'Start Call';
+            btn.disabled = false;
+            return;
+        }
+
+        activeCallAccount = accountNumber;
+        btn.textContent = 'Connecting...';
+        updateCallStatus(accountNumber, 'Connecting to agent...', '');
+
+        await fetch(API_BASE + '/call/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ account_number: accountNumber }),
+        });
+
+        var vapi = new VapiClass(vapiConfig.publicKey);
+        var callConnected = false;
+        var callDone = false;
+
+        function doCleanup(msg) {
+            if (callDone) return;
+            callDone = true;
+            cleanupCall(accountNumber, msg);
+        }
+
+        vapi.on('call-start', function() {
+            callConnected = true;
+            updateCallStatus(accountNumber, 'Call connected — speaking with agent', 'active');
+            var card = document.getElementById('card-' + accountNumber);
+            if (card) card.classList.add('on-call');
+        });
+
+        vapi.on('call-end', function() {
+            doCleanup();
+        });
+
+        vapi.on('error', function(e) {
+            console.error('Vapi error:', e);
+            var errorType = e && e.error && e.error.error && e.error.error.type;
+            var isTransfer = errorType === 'ejected';
+            doCleanup(isTransfer ? 'Transferred to live agent' : undefined);
+        });
+
+        await vapi.start(vapiConfig.assistantId, {
+            variableValues: {
+                consumer_first_name: account.consumer_first_name,
+                consumer_last_name: account.consumer_last_name,
+                consumer_state: account.consumer_state,
+                consumer_dob: account.consumer_dob,
+                account_number: account.account_number,
+                product_type: account.product_type,
+                last_4_digits: account.last_4_digits,
+                total_balance: String(account.total_balance),
+                past_due_amount: String(account.past_due_amount),
+                minimum_payment: String(account.minimum_payment),
+                days_past_due: String(account.days_past_due),
+                missed_payments: String(account.missed_payments),
+                cease_and_desist: String(account.cease_and_desist),
+                do_not_call: String(account.do_not_call),
+                has_attorney: String(account.has_attorney),
+                active_dispute: String(account.active_dispute),
+                promise_to_pay_exists: String(account.promise_to_pay_exists),
+                promise_to_pay_date: account.promise_to_pay_date || '',
+                promise_to_pay_amount: account.promise_to_pay_amount ? String(account.promise_to_pay_amount) : '',
+                last_contact_date: account.last_contact_date || '',
+                call_attempts_last_7_days: String(account.call_attempts_last_7_days),
+                callback_number: vapiConfig.transferNumber || account.callback_number,
+                department: account.department,
+            },
+        });
+
+        vapiInstance = vapi;
+        btn.textContent = 'End Call';
+        btn.disabled = false;
+        btn.className = 'btn-end';
+        btn.onclick = endCall;
+
+        callCheckInterval = setInterval(function() {
+            if (!vapiInstance || !activeCallAccount) {
+                cleanupCall(accountNumber);
+            }
+        }, 3000);
+    } catch (e) {
+        console.error('Failed to start call:', e);
+        updateCallStatus(accountNumber, 'Failed to start call: ' + e.message, 'ended');
+        btn.textContent = 'Start Call';
+        btn.disabled = false;
+        btn.className = 'btn-call';
+        btn.onclick = function() { startCall(accountNumber); };
+        activeCallAccount = null;
+    }
+}
+
+function endCall() {
+    var acct = activeCallAccount;
+    if (vapiInstance) {
+        vapiInstance.stop();
+    }
+    if (acct) cleanupCall(acct);
+}
+
+async function resetData() {
+    if (!confirm('Reset all account data and call logs to their original state?')) return;
+
+    try {
+        var res = await fetch(API_BASE + '/data/reset', { method: 'POST' });
+        if (res.ok) {
+            refreshAccounts();
+            refreshLogs();
+        }
+    } catch (e) {
+        alert('Reset failed: ' + e.message);
+    }
+}
+
+// Convert Vapi's ended_reason codes into readable strings for the call log UI.
+function friendlyEndedReason(reason) {
+    if (!reason) return 'Unknown';
+    if (reason.includes('transfer')) return 'Transferred to live agent';
+    if (reason === 'assistant-ended-call') return 'Agent ended call';
+    if (reason === 'customer-ended-call') return 'Customer ended call';
+    if (reason === 'silence-timed-out') return 'Silence timeout';
+    if (reason === 'voicemail') return 'Voicemail';
+    return reason;
+}
+
+// Toggle the transcript box visibility and update the button label.
+function toggleTranscript(id, btn) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var showing = el.classList.toggle('visible');
+    btn.textContent = showing ? 'Hide Transcript' : 'Show Transcript';
+}
+
+// Download the transcript for logsCache[index] as a plain text file with a metadata header.
+function downloadTranscript(index) {
+    var log = logsCache[index];
+    if (!log || !log.transcript) return;
+    var header = 'Call Transcript\n'
+        + 'Account: ' + (log.account_number || 'Unknown') + '\n'
+        + 'Date: ' + new Date(log.timestamp).toLocaleString() + '\n'
+        + 'Duration: ' + (log.duration_seconds ? log.duration_seconds + 's' : 'N/A') + '\n'
+        + 'Ended: ' + friendlyEndedReason(log.ended_reason) + '\n'
+        + '---\n\n';
+    var blob = new Blob([header + log.transcript], { type: 'text/plain' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'transcript_' + (log.account_number || 'unknown') + '_' + new Date(log.timestamp).toISOString().slice(0,10) + '.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+window.toggleTranscript = toggleTranscript;
+window.downloadTranscript = downloadTranscript;
+
+loadVapiSdk();
+loadConfig();
+refreshAccounts();
+refreshLogs();
+</script>
+
+</body>
+</html>

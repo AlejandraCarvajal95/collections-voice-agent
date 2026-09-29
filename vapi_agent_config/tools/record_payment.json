@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "properties": {
+    "amount": {
+      "description": "",
+      "type": "number",
+      "default": ""
+    },
+    "method": {
+      "description": "",
+      "type": "string",
+      "default": ""
+    },
+    "account_number": {
+      "description": "",
+      "type": "string",
+      "default": ""
+    }
+  },
+  "required": [
+    "account_number",
+    "amount"
+  ]
+}

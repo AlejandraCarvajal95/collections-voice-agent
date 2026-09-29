@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "properties": {
+    "date": {
+      "description": "The date the consumer promises to pay by, in YYYY-MM-DD format",
+      "type": "string"
+    },
+    "amount": {
+      "description": "The dollar amount the consumer commits to paying",
+      "type": "number"
+    },
+    "account_number": {
+      "description": "The consumer's account number (e.g., 'CH7723849')",
+      "type": "string"
+    }
+  },
+  "required": [
+    "account_number",
+    "amount",
+    "date"
+  ]
+}
