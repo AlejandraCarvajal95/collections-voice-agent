@@ -594,8 +594,8 @@ async function startCall(accountNumber) {
         vapi.on('error', function(e) {
             console.error('Vapi error:', e);
             var errorType = e && e.error && e.error.error && e.error.error.type;
-            var isTransfer = errorType === 'ejected' || callConnected;
-            doCleanup(isTransfer ? 'Transferred to live agent' : 'Call error — please try again');
+            var isTransfer = errorType === 'ejected';
+            doCleanup(isTransfer ? 'Transferred to live agent' : undefined);
         });
 
         await vapi.start(vapiConfig.assistantId, {
