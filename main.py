@@ -11,12 +11,28 @@ from pydantic import BaseModel
 
 from call_handler import handle_end_of_call, get_call_logs
 from compliance import check_compliance, increment_call_attempt
-from data import load_accounts, snapshot_original, reset_data
+from data import load_accounts, add_account, snapshot_original, reset_data
 from tools import TOOL_HANDLERS
 
 
 class CallCheckRequest(BaseModel):
     account_number: str
+
+
+class NewAccountRequest(BaseModel):
+    consumer_first_name: str
+    consumer_last_name: str
+    consumer_state: str
+    total_balance: float = 0.0
+    past_due_amount: float = 0.0
+    minimum_payment: float = 0.0
+    days_past_due: int = 30
+    missed_payments: int = 1
+    call_attempts_last_7_days: int = 0
+    cease_and_desist: bool = False
+    do_not_call: bool = False
+    has_attorney: bool = False
+    active_dispute: bool = False
 
 app = FastAPI(title="Collections Voice Agent Backend")
 
@@ -84,6 +100,11 @@ async def call_start(body: CallCheckRequest):
 @app.get("/accounts")
 async def get_accounts():
     return load_accounts()
+
+
+@app.post("/accounts")
+async def create_account(body: NewAccountRequest):
+    return add_account(body.model_dump())
 
 
 @app.get("/call/logs")

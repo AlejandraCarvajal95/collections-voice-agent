@@ -261,6 +261,49 @@
         }
         .transcript-box.visible { display: block; }
 
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.visible { display: flex; }
+        .modal {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 24px;
+            width: 100%;
+            max-width: 540px;
+            max-height: 90vh;
+            overflow-y: auto;
+            margin: 16px;
+        }
+        .modal h3 { font-size: 1rem; font-weight: 600; margin-bottom: 16px; }
+        .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .modal-field { display: flex; flex-direction: column; gap: 4px; }
+        .modal-field.full { grid-column: span 2; }
+        .modal-field label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-light); }
+        .modal-field input, .modal-field select {
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            background: var(--bg);
+            color: var(--text);
+        }
+        .modal-field input:focus, .modal-field select:focus { outline: none; border-color: var(--primary); }
+        .modal-flags { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 4px; }
+        .modal-flag-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; cursor: pointer; }
+        .modal-footer { display: flex; gap: 8px; margin-top: 20px; }
+        .modal-footer button { flex: 1; padding: 10px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: none; }
+        .btn-create { background: var(--primary); color: white; }
+        .btn-create:hover { background: var(--primary-hover); }
+        .btn-cancel-modal { background: var(--bg); color: var(--text); border: 1px solid var(--border) !important; }
+
         @media (max-width: 768px) {
             body { padding: 12px; }
             .grid { grid-template-columns: 1fr; }
@@ -279,6 +322,62 @@
     <button id="btn-refresh-accounts" onclick="refreshAccounts()">Refresh Accounts</button>
     <button id="btn-refresh-logs" onclick="refreshLogs()">Refresh Call Logs</button>
     <button onclick="resetData()">Reset Demo Data</button>
+    <button onclick="openNewAccountModal()">+ Add Consumer</button>
+</div>
+
+<div class="modal-overlay" id="new-account-modal">
+    <div class="modal">
+        <h3>Add Custom Consumer</h3>
+        <div class="modal-grid">
+            <div class="modal-field">
+                <label>First Name</label>
+                <input type="text" id="nc-first-name" placeholder="John">
+            </div>
+            <div class="modal-field">
+                <label>Last Name</label>
+                <input type="text" id="nc-last-name" placeholder="Doe">
+            </div>
+            <div class="modal-field">
+                <label>State</label>
+                <select id="nc-state">
+                    <option value="AL">Alabama</option><option value="AK">Alaska</option><option value="AZ">Arizona</option><option value="AR">Arkansas</option><option value="CA">California</option><option value="CO">Colorado</option><option value="CT">Connecticut</option><option value="DE">Delaware</option><option value="FL">Florida</option><option value="GA">Georgia</option><option value="HI">Hawaii</option><option value="ID">Idaho</option><option value="IL">Illinois</option><option value="IN">Indiana</option><option value="IA">Iowa</option><option value="KS">Kansas</option><option value="KY">Kentucky</option><option value="LA">Louisiana</option><option value="ME">Maine</option><option value="MD">Maryland</option><option value="MA">Massachusetts</option><option value="MI">Michigan</option><option value="MN">Minnesota</option><option value="MS">Mississippi</option><option value="MO">Missouri</option><option value="MT">Montana</option><option value="NE">Nebraska</option><option value="NV">Nevada</option><option value="NH">New Hampshire</option><option value="NJ">New Jersey</option><option value="NM">New Mexico</option><option value="NY" selected>New York</option><option value="NC">North Carolina</option><option value="ND">North Dakota</option><option value="OH">Ohio</option><option value="OK">Oklahoma</option><option value="OR">Oregon</option><option value="PA">Pennsylvania</option><option value="RI">Rhode Island</option><option value="SC">South Carolina</option><option value="SD">South Dakota</option><option value="TN">Tennessee</option><option value="TX">Texas</option><option value="UT">Utah</option><option value="VT">Vermont</option><option value="VA">Virginia</option><option value="WA">Washington</option><option value="WV">West Virginia</option><option value="WI">Wisconsin</option><option value="WY">Wyoming</option><option value="DC">Washington D.C.</option>
+                </select>
+            </div>
+            <div class="modal-field">
+                <label>Days Past Due</label>
+                <input type="number" id="nc-dpd" value="30" min="0">
+            </div>
+            <div class="modal-field">
+                <label>Total Balance ($)</label>
+                <input type="number" id="nc-balance" value="1000" step="0.01" min="0">
+            </div>
+            <div class="modal-field">
+                <label>Past Due Amount ($)</label>
+                <input type="number" id="nc-past-due" value="200" step="0.01" min="0">
+            </div>
+            <div class="modal-field">
+                <label>Min Payment ($)</label>
+                <input type="number" id="nc-min-payment" value="50" step="0.01" min="0">
+            </div>
+            <div class="modal-field">
+                <label>Call Attempts (7d)</label>
+                <input type="number" id="nc-call-attempts" value="0" min="0" max="10">
+            </div>
+            <div class="modal-field full">
+                <label>Flags</label>
+                <div class="modal-flags">
+                    <label class="modal-flag-item"><input type="checkbox" id="nc-cease"> Cease &amp; Desist</label>
+                    <label class="modal-flag-item"><input type="checkbox" id="nc-dnc"> Do Not Call</label>
+                    <label class="modal-flag-item"><input type="checkbox" id="nc-attorney"> Has Attorney</label>
+                    <label class="modal-flag-item"><input type="checkbox" id="nc-dispute"> Active Dispute</label>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel-modal" onclick="closeNewAccountModal()">Cancel</button>
+            <button class="btn-create" onclick="submitNewAccount()">Add Consumer</button>
+        </div>
+    </div>
 </div>
 <div id="status-bar" style="text-align:center;font-size:0.8rem;color:var(--text-light);min-height:1.2em;margin-bottom:8px;"></div>
 
@@ -716,6 +815,50 @@ function downloadTranscript(index) {
     a.download = 'transcript_' + (log.account_number || 'unknown') + '_' + new Date(log.timestamp).toISOString().slice(0,10) + '.txt';
     a.click();
     URL.revokeObjectURL(url);
+}
+
+function openNewAccountModal() {
+    document.getElementById('new-account-modal').classList.add('visible');
+}
+
+function closeNewAccountModal() {
+    document.getElementById('new-account-modal').classList.remove('visible');
+}
+
+async function submitNewAccount() {
+    var firstName = document.getElementById('nc-first-name').value.trim();
+    var lastName = document.getElementById('nc-last-name').value.trim();
+    if (!firstName || !lastName) {
+        alert('First name and last name are required.');
+        return;
+    }
+    var body = {
+        consumer_first_name: firstName,
+        consumer_last_name: lastName,
+        consumer_state: document.getElementById('nc-state').value,
+        total_balance: parseFloat(document.getElementById('nc-balance').value) || 0,
+        past_due_amount: parseFloat(document.getElementById('nc-past-due').value) || 0,
+        minimum_payment: parseFloat(document.getElementById('nc-min-payment').value) || 0,
+        days_past_due: parseInt(document.getElementById('nc-dpd').value) || 30,
+        call_attempts_last_7_days: parseInt(document.getElementById('nc-call-attempts').value) || 0,
+        cease_and_desist: document.getElementById('nc-cease').checked,
+        do_not_call: document.getElementById('nc-dnc').checked,
+        has_attorney: document.getElementById('nc-attorney').checked,
+        active_dispute: document.getElementById('nc-dispute').checked,
+    };
+    try {
+        var res = await fetch(API_BASE + '/accounts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error('Server returned ' + res.status);
+        closeNewAccountModal();
+        await refreshAccounts();
+        showStatus('Consumer added successfully');
+    } catch (e) {
+        alert('Failed to add consumer: ' + e.message);
+    }
 }
 
 window.toggleTranscript = toggleTranscript;

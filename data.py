@@ -1,5 +1,6 @@
 import json
 import copy
+import random
 from pathlib import Path
 
 ACCOUNTS_FILE = Path(__file__).parent / "data" / "accounts.json"
@@ -31,6 +32,41 @@ def snapshot_original():
     global _original_accounts
     if _original_accounts is None:
         _original_accounts = copy.deepcopy(load_accounts())
+
+
+def add_account(fields: dict) -> dict:
+    """Append a new custom account to accounts.json and return it."""
+    accounts = load_accounts()
+    number = "CH" + str(random.randint(1000000, 9999999))
+    account = {
+        "account_number": number,
+        "consumer_first_name": fields["consumer_first_name"],
+        "consumer_last_name": fields["consumer_last_name"],
+        "consumer_dob": "1990-01-01",
+        "consumer_state": fields["consumer_state"],
+        "phone": "+15550000000",
+        "product_type": "Credit Card",
+        "last_4_digits": number[-4:],
+        "total_balance": fields.get("total_balance", 0.0),
+        "past_due_amount": fields.get("past_due_amount", 0.0),
+        "minimum_payment": fields.get("minimum_payment", 0.0),
+        "days_past_due": fields.get("days_past_due", 30),
+        "missed_payments": fields.get("missed_payments", 1),
+        "cease_and_desist": fields.get("cease_and_desist", False),
+        "do_not_call": fields.get("do_not_call", False),
+        "has_attorney": fields.get("has_attorney", False),
+        "active_dispute": fields.get("active_dispute", False),
+        "promise_to_pay_exists": False,
+        "promise_to_pay_date": None,
+        "promise_to_pay_amount": None,
+        "last_contact_date": None,
+        "call_attempts_last_7_days": fields.get("call_attempts_last_7_days", 0),
+        "callback_number": "+18005550000",
+        "department": "Credit Card Services",
+    }
+    accounts.append(account)
+    save_accounts(accounts)
+    return account
 
 
 def reset_data():
