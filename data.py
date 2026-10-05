@@ -42,7 +42,7 @@ def add_account(fields: dict) -> dict:
         "account_number": number,
         "consumer_first_name": fields["consumer_first_name"],
         "consumer_last_name": fields["consumer_last_name"],
-        "consumer_dob": "1990-01-01",
+        "consumer_dob": fields.get("consumer_dob", "1990-01-01"),
         "consumer_state": fields["consumer_state"],
         "phone": "+15550000000",
         "product_type": "Credit Card",

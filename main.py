@@ -23,6 +23,7 @@ class NewAccountRequest(BaseModel):
     consumer_first_name: str
     consumer_last_name: str
     consumer_state: str
+    consumer_dob: str = "1990-01-01"
     total_balance: float = 0.0
     past_due_amount: float = 0.0
     minimum_payment: float = 0.0
